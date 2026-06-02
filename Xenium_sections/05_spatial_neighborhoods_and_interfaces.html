@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Andrew Portuguese" />
+
+<meta name="date" content="2026-06-02" />
+
+<title>05. Xenium Spatial Neighborhoods and Interfaces</title>
+
+<script src="05_spatial_neighborhoods_and_interfaces_files/header-attrs-2.31/header-attrs.js"></script>
+<script src="05_spatial_neighborhoods_and_interfaces_files/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="05_spatial_neighborhoods_and_interfaces_files/bootstrap-3.3.5/css/lumen.min.css" rel="stylesheet" />
+<script src="05_spatial_neighborhoods_and_interfaces_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="05_spatial_neighborhoods_and_interfaces_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="05_spatial_neighborhoods_and_interfaces_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="05_spatial_neighborhoods_and_interfaces_files/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="05_spatial_neighborhoods_and_interfaces_files/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="05_spatial_neighborhoods_and_interfaces_files/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="05_spatial_neighborhoods_and_interfaces_files/navigation-1.1/tabsets.js"></script>
+<script src="05_spatial_neighborhoods_and_interfaces_files/navigation-1.1/codefolding.js"></script>
+<link href="05_spatial_neighborhoods_and_interfaces_files/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="05_spatial_neighborhoods_and_interfaces_files/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">05. Xenium Spatial Neighborhoods and
+Interfaces</h1>
+<h4 class="author">Andrew Portuguese</h4>
+<h4 class="date">June 02, 2026</h4>
+
+</div>
+
+
+<style>
+body {
+  padding-top: 58px;
+}
+.tocify {
+  top: 72px !important;
+}
+.xenium-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  min-height: 50px;
+  box-sizing: border-box;
+  background-color: #0F2E3D;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 15px;
+  font-weight: 300;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+.xenium-navbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 28px;
+  box-sizing: border-box;
+}
+.xenium-navbar__brand {
+  color: inherit;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.xenium-navbar__right {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+.xenium-navbar__link,
+.xenium-navbar__dropbtn {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 15px 12px;
+  line-height: 20px;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.xenium-navbar__link:hover,
+.xenium-navbar__link:focus,
+.xenium-navbar__dropbtn:hover,
+.xenium-navbar__dropbtn:focus {
+  color: #ffffff;
+  text-decoration: none;
+}
+.xenium-navbar__link.is-active,
+.xenium-navbar__dropbtn.is-active {
+  color: #ffffff;
+  font-weight: 500;
+}
+.xenium-navbar__dropdown {
+  position: relative;
+  display: inline-flex;
+}
+.xenium-navbar__dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  min-width: 250px;
+  padding: 4px 0;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+.xenium-navbar__dropdown:hover .xenium-navbar__dropdown-content,
+.xenium-navbar__dropdown:focus-within .xenium-navbar__dropdown-content {
+  display: block;
+}
+.xenium-navbar__dropdown-content .xenium-navbar__link {
+  display: block;
+  color: #111827;
+  padding: 7px 18px;
+  white-space: nowrap;
+}
+.xenium-navbar__dropdown-content .xenium-navbar__link:hover,
+.xenium-navbar__dropdown-content .xenium-navbar__link:focus {
+  background: #e5e7eb;
+  color: #111827;
+}
+.xenium-navbar__dropdown-content .xenium-navbar__link.is-active {
+  background: #dbeafe;
+  color: #111827;
+  font-weight: 600;
+}
+@media screen and (max-width: 768px) {
+  body {
+    padding-top: 92px;
+  }
+  .tocify {
+    top: 104px !important;
+  }
+  .xenium-navbar__inner {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 0 14px;
+  }
+  .xenium-navbar__right {
+    width: 100%;
+  }
+  .xenium-navbar__brand {
+    padding-top: 10px;
+  }
+  .xenium-navbar__link,
+  .xenium-navbar__dropbtn {
+    padding: 9px 10px;
+  }
+  .xenium-navbar__dropdown-content {
+    left: 0;
+    right: auto;
+  }
+}
+@media print {
+  body {
+    padding-top: 0;
+  }
+  .xenium-navbar {
+    display: none;
+  }
+}
+</style>
+<header class="xenium-navbar" role="banner">
+<nav class="xenium-navbar__inner" aria-label="Xenium report navigation">
+<a class="xenium-navbar__brand" href="../Xenium.html">DLBCL PTLD
+Xenium</a>
+<div class="xenium-navbar__right">
+<a class="xenium-navbar__link" href="../Xenium.html">Home</a>
+<div class="xenium-navbar__dropdown">
+<button class="xenium-navbar__dropbtn is-active" type="button">
+Sections <span aria-hidden="true"> ▾</span>
+</button>
+<div class="xenium-navbar__dropdown-content">
+<a class="xenium-navbar__link" href="00_setup.html">00
+Setup/QC</a><a class="xenium-navbar__link" href="01_preprocess_qc.html">01
+Preprocess/QC</a><a class="xenium-navbar__link" href="02_shared_atlas_and_core_mapping.html">02
+Atlas/Core
+Mapping</a><a class="xenium-navbar__link" href="03_cell_annotation.html">03
+Cell
+Annotation</a><a class="xenium-navbar__link" href="04_composition_and_cluster_annotation.html">04
+Composition/Clusters</a><a class="xenium-navbar__link is-active" href="05_spatial_neighborhoods_and_interfaces.html">05
+Spatial/Interfaces</a><a class="xenium-navbar__link" href="06_differential_expression.html">06
+DE</a><a class="xenium-navbar__link" href="07_patient_characteristics.html">07
+Patient
+Characteristics</a><a class="xenium-navbar__link" href="08_spatialscore.html">08
+SpatialScore</a>
+</div>
+</div>
+</div>
+</nav>
+</header>
+<div id="spatial-neighborhoods-across-ptld-cores" class="section level2"
+number="1">
+<h2><span class="header-section-number">1</span> Spatial neighborhoods
+across PTLD cores</h2>
+<p>This section builds a within-core <code>k = 10</code>
+nearest-neighbor graph from Xenium centroids, converts each cell into a
+local neighborhood composition vector, and clusters those vectors into
+recurrent niche labels. Niche maps remain core-specific because the
+spatial graph is defined within core, but EBV-status inference collapses
+repeated cores to patient-level niche abundances before testing.</p>
+<pre class="r"><code>  neighborhood_out_dir &lt;- file.path(output_root, &quot;EBV_neighborhoods&quot;)
+  dir.create(neighborhood_out_dir, showWarnings = FALSE, recursive = TRUE)
+
+  spatial_k &lt;- 10
+  niche_cache &lt;- make_cache_file(&quot;xenium_with_niches&quot;, family = &quot;spatial&quot;, segmentation_cache_tag, paste0(&quot;k&quot;, spatial_k), &quot;candidate_malignant_b_v2&quot;)
+  spatial_res &lt;- get_cached_rds(
+    niche_cache,
+    function() benchmark_stage(&quot;spatial_neighborhoods&quot;, {
+      ptld_analysis_cells_local &lt;- build_ptld_analysis_cells(xenium_by_condition, centroids_by_condition)
+      ptld_analysis_cells_local &lt;- ptld_analysis_cells_local[!is.na(ptld_analysis_cells_local$x) &amp; !is.na(ptld_analysis_cells_local$y), , drop = FALSE]
+
+      neighborhood_res_local &lt;- get_cached_rds(
+        file.path(cache_root, &quot;ptld_neighborhood_profiles_k10.rds&quot;),
+        function() build_neighborhood_profiles(ptld_analysis_cells_local, label_col = &quot;cell_type_refined&quot;, k = spatial_k),
+        refresh = refresh_spatial,
+        expected_version = make_cache_tag(segmentation_cache_tag, &quot;neighborhood_profiles&quot;, paste0(&quot;k&quot;, spatial_k)),
+        allow_legacy = FALSE
+      )
+
+      if (!all(neighborhood_res_local$levels %in% colnames(neighborhood_res_local$profiles))) {
+        message(&quot;Rebuilding neighborhood-profile cache because stored profile columns do not match the expected cell-type labels.&quot;)
+        neighborhood_res_local &lt;- build_neighborhood_profiles(ptld_analysis_cells_local, label_col = &quot;cell_type_refined&quot;, k = spatial_k)
+        write_cache_bundle(
+          file.path(cache_root, &quot;ptld_neighborhood_profiles_k10.rds&quot;),
+          neighborhood_res_local,
+          expected_version = make_cache_tag(segmentation_cache_tag, &quot;neighborhood_profiles&quot;, paste0(&quot;k&quot;, spatial_k))
+        )
+      }
+
+      profile_df_local &lt;- neighborhood_res_local$profiles
+      profile_cols &lt;- neighborhood_res_local$levels
+      niche_fit_local &lt;- get_cached_rds(
+        file.path(cache_root, &quot;ptld_niche_assignment_k10.rds&quot;),
+        function() assign_niche_labels(profile_df_local, profile_cols = profile_cols, k_grid = 4:12, seed = 1),
+        refresh = refresh_spatial,
+        expected_version = make_cache_tag(segmentation_cache_tag, &quot;niche_assignment&quot;, paste0(&quot;k&quot;, spatial_k), &quot;grid4_12&quot;),
+        allow_legacy = FALSE
+      )
+
+      profile_df_local$niche_id &lt;- niche_fit_local$niche_id
+      ptld_analysis_cells_local$niche_id &lt;- profile_df_local$niche_id[match(ptld_analysis_cells_local$key, profile_df_local$key)]
+      ptld_analysis_cells_local$niche_id[is.na(ptld_analysis_cells_local$niche_id)] &lt;- &quot;Unassigned niche&quot;
+
+      xenium_with_niches &lt;- xenium_by_condition
+      for (cond in names(xenium_with_niches)) {
+        obj &lt;- xenium_with_niches[[cond]]
+        sample_key &lt;- gsub(&quot; &quot;, &quot;_&quot;, cond)
+        obj_keys &lt;- paste(sample_key, Cells(obj), sep = &quot;_&quot;)
+        obj$niche_id &lt;- ptld_analysis_cells_local$niche_id[match(obj_keys, ptld_analysis_cells_local$key)]
+        xenium_with_niches[[cond]] &lt;- obj
+      }
+
+      combined_niche_meta &lt;- build_combined_metadata(xenium_with_niches)
+      combined_niche_meta$key &lt;- paste(combined_niche_meta$sample_key, combined_niche_meta$cell_id, sep = &quot;_&quot;)
+      combined_niche_key &lt;- paste(xenium_combined$sample_key, xenium_combined$cell_id, sep = &quot;_&quot;)
+      combined_niche_match &lt;- match(combined_niche_key, combined_niche_meta$key)
+      xenium_combined_niche &lt;- xenium_combined
+      xenium_combined_niche$niche_id &lt;- combined_niche_meta$niche_id[combined_niche_match]
+
+      niche_summary_local &lt;- summarize_core_composition(
+        ptld_analysis_cells_local[ptld_analysis_cells_local$niche_id != &quot;Unassigned niche&quot;, , drop = FALSE],
+        label_col = &quot;niche_id&quot;,
+        sample_prefix = &quot;niche&quot;
+      )
+      niche_summary_local$core_id &lt;- factor(niche_summary_local$core_id, levels = order_core_ids(niche_summary_local$core_id))
+      niche_summary_local$value &lt;- logit_clamped((niche_summary_local$count + 0.5) / (niche_summary_local$core_total + 1))
+      niche_patient_summary_local &lt;- summarize_patient_composition(
+        ptld_analysis_cells_local[ptld_analysis_cells_local$niche_id != &quot;Unassigned niche&quot;, , drop = FALSE],
+        label_col = &quot;niche_id&quot;,
+        sample_prefix = &quot;niche&quot;
+      )
+      niche_patient_summary_local$value &lt;- logit_clamped((niche_patient_summary_local$count + 0.5) / (niche_patient_summary_local$patient_total + 1))
+      niche_patient_res_local &lt;- run_patient_feature_limma(niche_patient_summary_local, value_col = &quot;value&quot;)
+
+      list(
+        ptld_analysis_cells = ptld_analysis_cells_local,
+        neighborhood_res = neighborhood_res_local,
+        niche_fit = niche_fit_local,
+        xenium_by_condition = xenium_with_niches,
+        xenium_combined = xenium_combined_niche,
+        niche_summary = niche_summary_local,
+        niche_patient_summary = niche_patient_res_local$patient_metrics,
+        niche_limma = niche_patient_res_local$limma
+      )
+    }),
+    refresh = refresh_spatial,
+    metadata = list(stage = &quot;xenium_with_niches&quot;, k = spatial_k)
+  )</code></pre>
+<pre><code>## Using cache: xenium_with_niches_spatial_20260328_layered_cache_v1_k10_candidate_malignant_b_v2proseg_primary_v1</code></pre>
+<pre class="r"><code>  ptld_analysis_cells &lt;- spatial_res$ptld_analysis_cells
+  neighborhood_res &lt;- spatial_res$neighborhood_res
+  niche_fit &lt;- spatial_res$niche_fit
+  xenium_by_condition &lt;- spatial_res$xenium_by_condition
+  xenium_combined &lt;- spatial_res$xenium_combined
+  niche_summary &lt;- spatial_res$niche_summary
+  niche_patient_summary &lt;- spatial_res$niche_patient_summary
+  niche_limma &lt;- spatial_res$niche_limma
+  profile_df &lt;- neighborhood_res$profiles
+
+  write.csv(profile_df, file = file.path(neighborhood_out_dir, &quot;ptld_neighborhood_profiles.csv&quot;), row.names = FALSE)
+  write.csv(
+    data.frame(
+      selected_k = niche_fit$best_k,
+      average_silhouette = niche_fit$silhouette_mean,
+      stringsAsFactors = FALSE
+    ),
+    file = file.path(neighborhood_out_dir, &quot;niche_selection_summary.csv&quot;),
+    row.names = FALSE
+  )
+  write.csv(
+    data.frame(niche_id = rownames(niche_fit$centers), niche_fit$centers, row.names = NULL, check.names = FALSE),
+    file = file.path(neighborhood_out_dir, &quot;niche_centers.csv&quot;),
+    row.names = FALSE
+  )
+
+  xenium_pos &lt;- xenium_by_condition[[&quot;EBV POS&quot;]]
+  xenium_neg &lt;- xenium_by_condition[[&quot;EBV NEG&quot;]]
+
+  write.csv(niche_summary, file = file.path(neighborhood_out_dir, &quot;niche_abundance_per_core.csv&quot;), row.names = FALSE)
+  write.csv(niche_patient_summary, file = file.path(neighborhood_out_dir, &quot;niche_abundance_per_patient.csv&quot;), row.names = FALSE)
+  write.csv(niche_limma, file = file.path(neighborhood_out_dir, &quot;niche_abundance_limma.csv&quot;), row.names = FALSE)
+  write.csv(niche_summary, file = file.path(neighborhood_out_dir, &quot;niche_abundance_by_core.csv&quot;), row.names = FALSE)
+  write.csv(niche_patient_summary, file = file.path(neighborhood_out_dir, &quot;niche_abundance_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(niche_limma, file = file.path(neighborhood_out_dir, &quot;niche_abundance_patient_level_limma.csv&quot;), row.names = FALSE)
+  write.csv(ptld_analysis_cells, file = file.path(neighborhood_out_dir, &quot;ptld_analysis_cells_with_niches.csv&quot;), row.names = FALSE)
+  write.csv(neighborhood_res$edges, file = file.path(neighborhood_out_dir, &quot;ptld_k10_edges.csv&quot;), row.names = FALSE)
+
+  p_niche_umap &lt;- DimPlot(
+    subset(xenium_combined, cells = Cells(xenium_combined)[xenium_combined$core_type == &quot;PTLD&quot; &amp; xenium_combined$core_included]),
+    reduction = &quot;umap_harmony&quot;,
+    group.by = &quot;niche_id&quot;,
+    raster = FALSE
+  ) + ggtitle(&quot;PTLD Harmony UMAP by neighborhood niche&quot;)
+  show_and_save_plot(
+    p_niche_umap,
+    filename = file.path(neighborhood_out_dir, &quot;combined_ptld_umap_by_niche.jpg&quot;),
+    width = 9,
+    height = 7
+  )
+
+  p_niche_heat &lt;- make_feature_heatmap(
+    niche_summary,
+    x_col = &quot;core_id&quot;,
+    y_col = &quot;feature&quot;,
+    fill_col = &quot;proportion&quot;,
+    title_text = &quot;Neighborhood niche proportion by core&quot;
+  ) + facet_wrap(~condition, scales = &quot;free_x&quot;)
+  show_and_save_plot(
+    p_niche_heat,
+    filename = file.path(neighborhood_out_dir, &quot;niche_heatmap.jpg&quot;),
+    width = 12,
+    height = 5
+  )
+
+  p_niche_effect &lt;- make_limma_effect_plot(niche_limma, title_text = &quot;Neighborhood niche abundance: EBV POS vs EBV NEG&quot;)
+  show_and_save_plot(
+    p_niche_effect,
+    filename = file.path(neighborhood_out_dir, &quot;niche_effect_summary.jpg&quot;),
+    width = 8,
+    height = 6
+  )
+
+  for (cond in names(xenium_by_condition)) {
+    core_id &lt;- get_included_core_ids(xenium_by_condition[[cond]], cond, core_type = &quot;PTLD&quot;)[1]
+    niche_map_file &lt;- file.path(neighborhood_out_dir, paste0(gsub(&quot; &quot;, &quot;_&quot;, cond), &quot;_&quot;, core_id, &quot;_niche_map.jpg&quot;))
+    if (should_generate_file(niche_map_file, refresh = refresh_spatial)) {
+      core_plot_df &lt;- ptld_analysis_cells[
+        ptld_analysis_cells$condition == cond &amp; ptld_analysis_cells$core_id == core_id,
+        ,
+        drop = FALSE
+      ]
+      p_core_niche &lt;- ggplot(core_plot_df, aes(x = x, y = y, color = niche_id)) +
+        geom_point(size = 0.15, alpha = 0.7) +
+        coord_equal() +
+        theme_void() +
+        labs(title = paste(cond, &quot;-&quot;, core_id, &quot;neighborhood niches&quot;), color = &quot;Niche&quot;)
+      show_and_save_plot(
+        p_core_niche,
+        filename = niche_map_file,
+        width = 6,
+        height = 6
+      )
+    } else {
+      message(&quot;Using existing niche map image: &quot;, niche_map_file)
+    }
+  }</code></pre>
+<pre><code>## Using existing niche map image: Analysis/Xenium_analysis/EBV_neighborhoods/EBV_POS_R1_C2_niche_map.jpg</code></pre>
+<pre><code>## Using existing niche map image: Analysis/Xenium_analysis/EBV_neighborhoods/EBV_NEG_R1_C2_niche_map.jpg</code></pre>
+<pre class="r"><code>  utils::head(niche_limma)</code></pre>
+<pre><code>##                logFC    AveExpr            t   P.Value adj.P.Val         B
+## Niche_1 -0.027692183 -0.4651107 -0.110065825 0.9129430 0.9938659 -4.626971
+## Niche_2  0.420625388 -1.2494937  0.688613568 0.4952966 0.9905932 -4.612343
+## Niche_3 -0.003578329 -1.1455247 -0.007739323 0.9938659 0.9938659 -4.627357
+## Niche_4 -0.639742210 -0.5539466 -1.155469748 0.2551931 0.9905932 -4.585989
+##         feature
+## Niche_1 Niche_1
+## Niche_2 Niche_2
+## Niche_3 Niche_3
+## Niche_4 Niche_4</code></pre>
+<p><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_spatial_neighborhoods-1.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_spatial_neighborhoods-2.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_spatial_neighborhoods-3.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="cell-cell-interfaces-across-ptld-cores" class="section level2"
+number="2">
+<h2><span class="header-section-number">2</span> Cell-cell interfaces
+across PTLD cores</h2>
+<p>This section uses the same within-core neighborhood graph to quantify
+adjacency structure. Pairwise enrichments are normalized by within-core
+label permutations so the resulting EBV-status comparison reflects
+interface enrichment beyond what would be expected from cell abundance
+alone. Interfaces are measured per core, then averaged across technical
+replicate cores from the same patient before limma testing.</p>
+<pre class="r"><code>  interface_out_dir &lt;- file.path(output_root, &quot;EBV_cellcell_interfaces&quot;)
+  dir.create(interface_out_dir, showWarnings = FALSE, recursive = TRUE)
+
+  empty_interface_metric_df &lt;- function() {
+    data.frame(
+      sample_key = character(),
+      condition = character(),
+      core_id = character(),
+      patient_id = character(),
+      sample_id = character(),
+      feature = character(),
+      observed = numeric(),
+      perm_mean = numeric(),
+      enrichment = numeric(),
+      z_score = numeric(),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  empty_limma_df &lt;- function() {
+    data.frame(
+      logFC = numeric(),
+      AveExpr = numeric(),
+      t = numeric(),
+      P.Value = numeric(),
+      adj.P.Val = numeric(),
+      B = numeric(),
+      feature = character(),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  compute_unordered_pair_enrichment &lt;- function(core_df, edge_df, label_col, n_perm = 100) {
+    labels &lt;- as.character(core_df[[label_col]])
+    names(labels) &lt;- core_df$key
+    valid_cells &lt;- !is.na(labels) &amp; labels != &quot;&quot;
+    labels &lt;- labels[valid_cells]
+    if (length(labels) &lt; 2) return(data.frame())
+
+    source_idx &lt;- match(edge_df$source_cell, names(labels))
+    target_idx &lt;- match(edge_df$target_cell, names(labels))
+    valid_edges &lt;- !is.na(source_idx) &amp; !is.na(target_idx)
+    source_idx &lt;- source_idx[valid_edges]
+    target_idx &lt;- target_idx[valid_edges]
+    if (length(source_idx) == 0) return(data.frame())
+
+    label_levels &lt;- sort(unique(labels))
+    all_pairs &lt;- character()
+    for (i in seq_along(label_levels)) {
+      for (j in i:length(label_levels)) {
+        all_pairs &lt;- c(all_pairs, paste(label_levels[i], label_levels[j], sep = &quot; &lt;-&gt; &quot;))
+      }
+    }
+
+    make_pairs &lt;- function(label_vec) {
+      left &lt;- label_vec[source_idx]
+      right &lt;- label_vec[target_idx]
+      pair_vec &lt;- paste(pmin(left, right), pmax(left, right), sep = &quot; &lt;-&gt; &quot;)
+      table(factor(pair_vec, levels = all_pairs))
+    }
+
+    observed &lt;- make_pairs(unname(labels))
+    perm_mat &lt;- replicate(n_perm, make_pairs(sample(unname(labels))), simplify = &quot;matrix&quot;)
+    perm_mean &lt;- rowMeans(perm_mat)
+    perm_sd &lt;- apply(perm_mat, 1, stats::sd)
+    perm_sd[perm_sd == 0 | is.na(perm_sd)] &lt;- 1
+
+    data.frame(
+      feature = names(observed),
+      observed = as.numeric(observed),
+      perm_mean = as.numeric(perm_mean),
+      enrichment = log2((as.numeric(observed) + 1) / (as.numeric(perm_mean) + 1)),
+      z_score = (as.numeric(observed) - as.numeric(perm_mean)) / perm_sd,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  candidate_malignant_b_positive_calls &lt;- c(&quot;Candidate malignant B&quot;, &quot;EBV-positive candidate malignant B&quot;)
+
+  is_candidate_malignant_b_cell &lt;- function(df) {
+    if (!&quot;candidate_malignant_b_call&quot; %in% colnames(df)) {
+      return(rep(FALSE, nrow(df)))
+    }
+    as.character(df$candidate_malignant_b_call) %in% candidate_malignant_b_positive_calls
+  }
+
+  compute_cross_state_enrichment &lt;- function(core_df, edge_df, b_col = &quot;malignant_b_state&quot;, b_keep = NULL, n_perm = 100) {
+    if (!b_col %in% colnames(core_df)) {
+      return(data.frame())
+    }
+    t_labels &lt;- as.character(core_df$tcell_state)
+    b_labels &lt;- as.character(core_df[[b_col]])
+    if (!is.null(b_keep)) {
+      b_labels[!b_keep] &lt;- NA_character_
+    }
+    names(t_labels) &lt;- core_df$key
+    names(b_labels) &lt;- core_df$key
+
+    t_levels &lt;- sort(unique(na.omit(t_labels[t_labels != &quot;&quot;])))
+    b_levels &lt;- sort(unique(na.omit(b_labels[b_labels != &quot;&quot;])))
+    if (length(t_levels) == 0 || length(b_levels) == 0) return(data.frame())
+
+    source_idx &lt;- match(edge_df$source_cell, core_df$key)
+    target_idx &lt;- match(edge_df$target_cell, core_df$key)
+    valid_edges &lt;- !is.na(source_idx) &amp; !is.na(target_idx)
+    source_idx &lt;- source_idx[valid_edges]
+    target_idx &lt;- target_idx[valid_edges]
+    if (length(source_idx) == 0) return(data.frame())
+
+    all_pairs &lt;- as.vector(outer(t_levels, b_levels, paste, sep = &quot; &lt;-&gt; &quot;))
+
+    make_pairs &lt;- function(t_vec, b_vec) {
+      source_t &lt;- t_vec[source_idx]
+      target_t &lt;- t_vec[target_idx]
+      source_b &lt;- b_vec[source_idx]
+      target_b &lt;- b_vec[target_idx]
+      pair_vec &lt;- ifelse(
+        !is.na(source_t) &amp; !is.na(target_b),
+        paste(source_t, target_b, sep = &quot; &lt;-&gt; &quot;),
+        ifelse(
+          !is.na(target_t) &amp; !is.na(source_b),
+          paste(target_t, source_b, sep = &quot; &lt;-&gt; &quot;),
+          NA_character_
+        )
+      )
+      table(factor(pair_vec, levels = all_pairs))
+    }
+
+    observed &lt;- make_pairs(t_labels, b_labels)
+    perm_mat &lt;- replicate(
+      n_perm,
+      make_pairs(sample(t_labels), sample(b_labels)),
+      simplify = &quot;matrix&quot;
+    )
+    perm_mean &lt;- rowMeans(perm_mat)
+    perm_sd &lt;- apply(perm_mat, 1, stats::sd)
+    perm_sd[perm_sd == 0 | is.na(perm_sd)] &lt;- 1
+
+    data.frame(
+      feature = names(observed),
+      observed = as.numeric(observed),
+      perm_mean = as.numeric(perm_mean),
+      enrichment = log2((as.numeric(observed) + 1) / (as.numeric(perm_mean) + 1)),
+      z_score = (as.numeric(observed) - as.numeric(perm_mean)) / perm_sd,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  interface_cache &lt;- make_cache_file(&quot;interface_patient_results&quot;, family = &quot;spatial&quot;, segmentation_cache_tag, &quot;k10&quot;, &quot;perm100&quot;, &quot;candidate_malignant_b_v2&quot;)
+  interface_bundle &lt;- get_cached_rds(
+    interface_cache,
+    function() benchmark_stage(&quot;interface_enrichment&quot;, {
+      interface_results_local &lt;- get_cached_rds(
+        file.path(cache_root, &quot;ptld_interface_enrichment_k10_perm100_candidate_malignant_b_v2.rds&quot;),
+        function() {
+          core_split &lt;- split(ptld_analysis_cells, interaction(ptld_analysis_cells$sample_key, ptld_analysis_cells$core_id, drop = TRUE))
+          edge_split &lt;- split(neighborhood_res$edges, interaction(neighborhood_res$edges$sample_key, neighborhood_res$edges$core_id, drop = TRUE))
+          per_core_interface &lt;- maybe_future_lapply(
+            intersect(names(core_split), names(edge_split)),
+            function(nm) {
+              worker_thread_initializer()
+              core_df &lt;- core_split[[nm]]
+              edge_df &lt;- edge_split[[nm]]
+              base_info &lt;- unique(core_df[, c(&quot;sample_key&quot;, &quot;condition&quot;, &quot;core_id&quot;, &quot;patient_id&quot;), drop = FALSE])[1, , drop = FALSE]
+              base_info$sample_id &lt;- paste(base_info$condition, base_info$core_id, sep = &quot;__&quot;)
+              base_info$core_total &lt;- nrow(core_df)
+
+              celltype_df &lt;- compute_unordered_pair_enrichment(core_df, edge_df, label_col = &quot;cell_type_refined&quot;, n_perm = 100)
+              candidate_mask &lt;- is_candidate_malignant_b_cell(core_df)
+              cross_df &lt;- compute_cross_state_enrichment(core_df, edge_df, b_col = &quot;malignant_b_state&quot;, n_perm = 100)
+              candidate_call_df &lt;- compute_cross_state_enrichment(core_df, edge_df, b_col = &quot;candidate_malignant_b_call&quot;, b_keep = candidate_mask, n_perm = 100)
+              candidate_program_df &lt;- compute_cross_state_enrichment(core_df, edge_df, b_col = &quot;candidate_malignant_b_program&quot;, b_keep = candidate_mask, n_perm = 100)
+
+              list(
+                celltype = if (nrow(celltype_df) &gt; 0) cbind(base_info, celltype_df, stringsAsFactors = FALSE) else NULL,
+                cross = if (nrow(cross_df) &gt; 0) cbind(base_info, cross_df, stringsAsFactors = FALSE) else NULL,
+                candidate_call = if (nrow(candidate_call_df) &gt; 0) cbind(base_info, candidate_call_df, stringsAsFactors = FALSE) else NULL,
+                candidate_program = if (nrow(candidate_program_df) &gt; 0) cbind(base_info, candidate_program_df, stringsAsFactors = FALSE) else NULL
+              )
+            }
+          )
+          celltype_list &lt;- lapply(per_core_interface, `[[`, &quot;celltype&quot;)
+          cross_list &lt;- lapply(per_core_interface, `[[`, &quot;cross&quot;)
+          candidate_call_list &lt;- lapply(per_core_interface, `[[`, &quot;candidate_call&quot;)
+          candidate_program_list &lt;- lapply(per_core_interface, `[[`, &quot;candidate_program&quot;)
+          celltype_list &lt;- celltype_list[!vapply(celltype_list, is.null, logical(1))]
+          cross_list &lt;- cross_list[!vapply(cross_list, is.null, logical(1))]
+          candidate_call_list &lt;- candidate_call_list[!vapply(candidate_call_list, is.null, logical(1))]
+          candidate_program_list &lt;- candidate_program_list[!vapply(candidate_program_list, is.null, logical(1))]
+
+          list(
+            celltype = if (length(celltype_list) &gt; 0) do.call(rbind, celltype_list) else empty_interface_metric_df(),
+            tcell_malignant = if (length(cross_list) &gt; 0) do.call(rbind, cross_list) else empty_interface_metric_df(),
+            tcell_candidate_malignant_b_call = if (length(candidate_call_list) &gt; 0) do.call(rbind, candidate_call_list) else empty_interface_metric_df(),
+            tcell_candidate_malignant_b_program = if (length(candidate_program_list) &gt; 0) do.call(rbind, candidate_program_list) else empty_interface_metric_df()
+          )
+        },
+        refresh = refresh_spatial,
+        expected_version = make_cache_tag(segmentation_cache_tag, &quot;interface_enrichment&quot;, &quot;k10&quot;, &quot;perm100&quot;, &quot;candidate_malignant_b_v2&quot;),
+        allow_legacy = FALSE
+      )
+
+      interface_required_cols &lt;- c(&quot;sample_key&quot;, &quot;condition&quot;, &quot;core_id&quot;, &quot;patient_id&quot;, &quot;sample_id&quot;, &quot;feature&quot;, &quot;observed&quot;, &quot;perm_mean&quot;, &quot;enrichment&quot;, &quot;z_score&quot;)
+      cache_is_compatible &lt;- function(x) {
+        is.data.frame(x) &amp;&amp; all(interface_required_cols %in% colnames(x))
+      }
+      if (
+        !cache_is_compatible(interface_results_local$celltype) ||
+        !cache_is_compatible(interface_results_local$tcell_malignant) ||
+        !cache_is_compatible(interface_results_local$tcell_candidate_malignant_b_call) ||
+        !cache_is_compatible(interface_results_local$tcell_candidate_malignant_b_program)
+      ) {
+        message(&quot;Rebuilding interface-enrichment cache because stored results do not have the expected columns.&quot;)
+        core_split &lt;- split(ptld_analysis_cells, interaction(ptld_analysis_cells$sample_key, ptld_analysis_cells$core_id, drop = TRUE))
+        edge_split &lt;- split(neighborhood_res$edges, interaction(neighborhood_res$edges$sample_key, neighborhood_res$edges$core_id, drop = TRUE))
+        per_core_interface &lt;- maybe_future_lapply(
+          intersect(names(core_split), names(edge_split)),
+          function(nm) {
+            worker_thread_initializer()
+            core_df &lt;- core_split[[nm]]
+            edge_df &lt;- edge_split[[nm]]
+            base_info &lt;- unique(core_df[, c(&quot;sample_key&quot;, &quot;condition&quot;, &quot;core_id&quot;, &quot;patient_id&quot;), drop = FALSE])[1, , drop = FALSE]
+            base_info$sample_id &lt;- paste(base_info$condition, base_info$core_id, sep = &quot;__&quot;)
+            base_info$core_total &lt;- nrow(core_df)
+
+            celltype_df &lt;- compute_unordered_pair_enrichment(core_df, edge_df, label_col = &quot;cell_type_refined&quot;, n_perm = 100)
+            candidate_mask &lt;- is_candidate_malignant_b_cell(core_df)
+            cross_df &lt;- compute_cross_state_enrichment(core_df, edge_df, b_col = &quot;malignant_b_state&quot;, n_perm = 100)
+            candidate_call_df &lt;- compute_cross_state_enrichment(core_df, edge_df, b_col = &quot;candidate_malignant_b_call&quot;, b_keep = candidate_mask, n_perm = 100)
+            candidate_program_df &lt;- compute_cross_state_enrichment(core_df, edge_df, b_col = &quot;candidate_malignant_b_program&quot;, b_keep = candidate_mask, n_perm = 100)
+
+            list(
+              celltype = if (nrow(celltype_df) &gt; 0) cbind(base_info, celltype_df, stringsAsFactors = FALSE) else NULL,
+              cross = if (nrow(cross_df) &gt; 0) cbind(base_info, cross_df, stringsAsFactors = FALSE) else NULL,
+              candidate_call = if (nrow(candidate_call_df) &gt; 0) cbind(base_info, candidate_call_df, stringsAsFactors = FALSE) else NULL,
+              candidate_program = if (nrow(candidate_program_df) &gt; 0) cbind(base_info, candidate_program_df, stringsAsFactors = FALSE) else NULL
+            )
+          }
+        )
+        celltype_list &lt;- lapply(per_core_interface, `[[`, &quot;celltype&quot;)
+        cross_list &lt;- lapply(per_core_interface, `[[`, &quot;cross&quot;)
+        candidate_call_list &lt;- lapply(per_core_interface, `[[`, &quot;candidate_call&quot;)
+        candidate_program_list &lt;- lapply(per_core_interface, `[[`, &quot;candidate_program&quot;)
+        celltype_list &lt;- celltype_list[!vapply(celltype_list, is.null, logical(1))]
+        cross_list &lt;- cross_list[!vapply(cross_list, is.null, logical(1))]
+        candidate_call_list &lt;- candidate_call_list[!vapply(candidate_call_list, is.null, logical(1))]
+        candidate_program_list &lt;- candidate_program_list[!vapply(candidate_program_list, is.null, logical(1))]
+
+        interface_results_local &lt;- list(
+          celltype = if (length(celltype_list) &gt; 0) do.call(rbind, celltype_list) else empty_interface_metric_df(),
+          tcell_malignant = if (length(cross_list) &gt; 0) do.call(rbind, cross_list) else empty_interface_metric_df(),
+          tcell_candidate_malignant_b_call = if (length(candidate_call_list) &gt; 0) do.call(rbind, candidate_call_list) else empty_interface_metric_df(),
+          tcell_candidate_malignant_b_program = if (length(candidate_program_list) &gt; 0) do.call(rbind, candidate_program_list) else empty_interface_metric_df()
+        )
+        write_cache_bundle(
+          file.path(cache_root, &quot;ptld_interface_enrichment_k10_perm100_candidate_malignant_b_v2.rds&quot;),
+          interface_results_local,
+          expected_version = make_cache_tag(segmentation_cache_tag, &quot;interface_enrichment&quot;, &quot;k10&quot;, &quot;perm100&quot;, &quot;candidate_malignant_b_v2&quot;)
+        )
+      }
+
+      if (is.null(interface_results_local$celltype) || !&quot;feature&quot; %in% colnames(interface_results_local$celltype)) {
+        interface_results_local$celltype &lt;- empty_interface_metric_df()
+      }
+      if (is.null(interface_results_local$tcell_malignant) || !&quot;feature&quot; %in% colnames(interface_results_local$tcell_malignant)) {
+        interface_results_local$tcell_malignant &lt;- empty_interface_metric_df()
+      }
+      if (is.null(interface_results_local$tcell_candidate_malignant_b_call) || !&quot;feature&quot; %in% colnames(interface_results_local$tcell_candidate_malignant_b_call)) {
+        interface_results_local$tcell_candidate_malignant_b_call &lt;- empty_interface_metric_df()
+      }
+      if (is.null(interface_results_local$tcell_candidate_malignant_b_program) || !&quot;feature&quot; %in% colnames(interface_results_local$tcell_candidate_malignant_b_program)) {
+        interface_results_local$tcell_candidate_malignant_b_program &lt;- empty_interface_metric_df()
+      }
+
+      if (nrow(interface_results_local$celltype) &gt; 0) {
+        interface_results_local$celltype$value &lt;- interface_results_local$celltype$enrichment
+        celltype_patient_metrics_local &lt;- collapse_metrics_to_patient(
+          interface_results_local$celltype,
+          value_cols = c(&quot;observed&quot;, &quot;perm_mean&quot;, &quot;enrichment&quot;, &quot;z_score&quot;, &quot;value&quot;),
+          weight_col = &quot;core_total&quot;
+        )
+        celltype_interface_limma_local &lt;- run_core_feature_limma(
+          celltype_patient_metrics_local,
+          sample_col = &quot;patient_id&quot;,
+          value_col = &quot;value&quot;
+        )
+        celltype_interface_limma_local$feature &lt;- rownames(celltype_interface_limma_local)
+      } else {
+        celltype_patient_metrics_local &lt;- data.frame()
+        celltype_interface_limma_local &lt;- empty_limma_df()
+      }
+
+      if (nrow(interface_results_local$tcell_malignant) &gt; 0) {
+        interface_results_local$tcell_malignant$value &lt;- interface_results_local$tcell_malignant$enrichment
+        cross_patient_metrics_local &lt;- collapse_metrics_to_patient(
+          interface_results_local$tcell_malignant,
+          value_cols = c(&quot;observed&quot;, &quot;perm_mean&quot;, &quot;enrichment&quot;, &quot;z_score&quot;, &quot;value&quot;),
+          weight_col = &quot;core_total&quot;
+        )
+        cross_interface_limma_local &lt;- run_core_feature_limma(
+          cross_patient_metrics_local,
+          sample_col = &quot;patient_id&quot;,
+          value_col = &quot;value&quot;
+        )
+        cross_interface_limma_local$feature &lt;- rownames(cross_interface_limma_local)
+      } else {
+        cross_patient_metrics_local &lt;- data.frame()
+        cross_interface_limma_local &lt;- empty_limma_df()
+      }
+
+      summarize_interface_result &lt;- function(interface_df) {
+        if (nrow(interface_df) == 0) {
+          return(list(patient_metrics = data.frame(), limma = empty_limma_df()))
+        }
+        interface_df$value &lt;- interface_df$enrichment
+        patient_metrics &lt;- collapse_metrics_to_patient(
+          interface_df,
+          value_cols = c(&quot;observed&quot;, &quot;perm_mean&quot;, &quot;enrichment&quot;, &quot;z_score&quot;, &quot;value&quot;),
+          weight_col = &quot;core_total&quot;
+        )
+        limma_res &lt;- run_core_feature_limma(
+          patient_metrics,
+          sample_col = &quot;patient_id&quot;,
+          value_col = &quot;value&quot;
+        )
+        limma_res$feature &lt;- rownames(limma_res)
+        list(patient_metrics = patient_metrics, limma = limma_res)
+      }
+
+      candidate_call_summary_local &lt;- summarize_interface_result(interface_results_local$tcell_candidate_malignant_b_call)
+      candidate_program_summary_local &lt;- summarize_interface_result(interface_results_local$tcell_candidate_malignant_b_program)
+
+      list(
+        interface_results = interface_results_local,
+        celltype_patient_metrics = celltype_patient_metrics_local,
+        cross_patient_metrics = cross_patient_metrics_local,
+        celltype_interface_limma = celltype_interface_limma_local,
+        cross_interface_limma = cross_interface_limma_local,
+        candidate_call_patient_metrics = candidate_call_summary_local$patient_metrics,
+        candidate_program_patient_metrics = candidate_program_summary_local$patient_metrics,
+        candidate_call_interface_limma = candidate_call_summary_local$limma,
+        candidate_program_interface_limma = candidate_program_summary_local$limma
+      )
+    }),
+    refresh = refresh_spatial,
+    metadata = list(stage = &quot;interface_patient_results&quot;, k = 10, permutations = 100)
+  )</code></pre>
+<pre><code>## Using cache: interface_patient_results_spatial_20260328_layered_cache_v1_k10_perm100_candidate_malignant_b_v2proseg_primary_v1</code></pre>
+<pre class="r"><code>  interface_results &lt;- interface_bundle$interface_results
+  celltype_patient_metrics &lt;- interface_bundle$celltype_patient_metrics
+  cross_patient_metrics &lt;- interface_bundle$cross_patient_metrics
+  celltype_interface_limma &lt;- interface_bundle$celltype_interface_limma
+  cross_interface_limma &lt;- interface_bundle$cross_interface_limma
+  candidate_call_patient_metrics &lt;- interface_bundle$candidate_call_patient_metrics
+  candidate_program_patient_metrics &lt;- interface_bundle$candidate_program_patient_metrics
+  candidate_call_interface_limma &lt;- interface_bundle$candidate_call_interface_limma
+  candidate_program_interface_limma &lt;- interface_bundle$candidate_program_interface_limma
+  if (is.null(candidate_call_patient_metrics)) candidate_call_patient_metrics &lt;- data.frame()
+  if (is.null(candidate_program_patient_metrics)) candidate_program_patient_metrics &lt;- data.frame()
+  if (is.null(candidate_call_interface_limma)) candidate_call_interface_limma &lt;- empty_limma_df()
+  if (is.null(candidate_program_interface_limma)) candidate_program_interface_limma &lt;- empty_limma_df()
+
+  interface_required_cols &lt;- c(&quot;sample_key&quot;, &quot;condition&quot;, &quot;core_id&quot;, &quot;patient_id&quot;, &quot;sample_id&quot;, &quot;feature&quot;, &quot;observed&quot;, &quot;perm_mean&quot;, &quot;enrichment&quot;, &quot;z_score&quot;)
+  cache_is_compatible &lt;- function(x) {
+    is.data.frame(x) &amp;&amp; all(interface_required_cols %in% colnames(x))
+  }
+
+  if (is.null(interface_results$celltype) || !&quot;feature&quot; %in% colnames(interface_results$celltype)) {
+    interface_results$celltype &lt;- empty_interface_metric_df()
+  }
+  if (is.null(interface_results$tcell_malignant) || !&quot;feature&quot; %in% colnames(interface_results$tcell_malignant)) {
+    interface_results$tcell_malignant &lt;- empty_interface_metric_df()
+  }
+  if (is.null(interface_results$tcell_candidate_malignant_b_call) || !&quot;feature&quot; %in% colnames(interface_results$tcell_candidate_malignant_b_call)) {
+    interface_results$tcell_candidate_malignant_b_call &lt;- empty_interface_metric_df()
+  }
+  if (is.null(interface_results$tcell_candidate_malignant_b_program) || !&quot;feature&quot; %in% colnames(interface_results$tcell_candidate_malignant_b_program)) {
+    interface_results$tcell_candidate_malignant_b_program &lt;- empty_interface_metric_df()
+  }
+
+  write.csv(interface_results$celltype, file = file.path(interface_out_dir, &quot;celltype_interface_enrichment_by_core.csv&quot;), row.names = FALSE)
+  write.csv(interface_results$tcell_malignant, file = file.path(interface_out_dir, &quot;tcell_malignant_interface_enrichment_by_core.csv&quot;), row.names = FALSE)
+  write.csv(interface_results$tcell_candidate_malignant_b_call, file = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_call_interface_enrichment_by_core.csv&quot;), row.names = FALSE)
+  write.csv(interface_results$tcell_candidate_malignant_b_program, file = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_program_interface_enrichment_by_core.csv&quot;), row.names = FALSE)
+
+  if (nrow(celltype_patient_metrics) == 0) {
+    message(&quot;No cell-type interface metrics were generated for replicate-level testing.&quot;)
+  }
+  if (nrow(cross_patient_metrics) == 0) {
+    message(&quot;No T-cell-state to B-cell-program interface metrics were generated for replicate-level testing.&quot;)
+  }
+  if (nrow(candidate_call_patient_metrics) == 0) {
+    message(&quot;No T-cell-state to candidate malignant-B-call interface metrics were generated for replicate-level testing.&quot;)
+  }
+  if (nrow(candidate_program_patient_metrics) == 0) {
+    message(&quot;No T-cell-state to candidate malignant-B-program interface metrics were generated for replicate-level testing.&quot;)
+  }
+
+  write.csv(celltype_patient_metrics, file = file.path(interface_out_dir, &quot;celltype_interface_enrichment_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(cross_patient_metrics, file = file.path(interface_out_dir, &quot;tcell_malignant_interface_enrichment_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(candidate_call_patient_metrics, file = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_call_interface_enrichment_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(candidate_program_patient_metrics, file = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_program_interface_enrichment_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(celltype_interface_limma, file = file.path(interface_out_dir, &quot;celltype_interface_limma.csv&quot;), row.names = FALSE)
+  write.csv(cross_interface_limma, file = file.path(interface_out_dir, &quot;tcell_malignant_interface_limma.csv&quot;), row.names = FALSE)
+  write.csv(candidate_call_interface_limma, file = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_call_interface_limma.csv&quot;), row.names = FALSE)
+  write.csv(candidate_program_interface_limma, file = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_program_interface_limma.csv&quot;), row.names = FALSE)
+  write.csv(interface_results$celltype, file = file.path(interface_out_dir, &quot;celltype_interface_enrichment_by_core.csv&quot;), row.names = FALSE)
+  write.csv(interface_results$tcell_malignant, file = file.path(interface_out_dir, &quot;tcell_malignant_interface_enrichment_by_core.csv&quot;), row.names = FALSE)
+  write.csv(celltype_patient_metrics, file = file.path(interface_out_dir, &quot;celltype_interface_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(cross_patient_metrics, file = file.path(interface_out_dir, &quot;tcell_malignant_interface_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(candidate_call_patient_metrics, file = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_call_interface_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(candidate_program_patient_metrics, file = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_program_interface_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(celltype_interface_limma, file = file.path(interface_out_dir, &quot;celltype_interface_patient_level_limma.csv&quot;), row.names = FALSE)
+  write.csv(cross_interface_limma, file = file.path(interface_out_dir, &quot;tcell_malignant_interface_patient_level_limma.csv&quot;), row.names = FALSE)
+  write.csv(candidate_call_interface_limma, file = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_call_interface_patient_level_limma.csv&quot;), row.names = FALSE)
+  write.csv(candidate_program_interface_limma, file = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_program_interface_patient_level_limma.csv&quot;), row.names = FALSE)
+
+  decode_interface_pair_label &lt;- function(feature, left_levels, right_levels) {
+    parts &lt;- strsplit(as.character(feature), &quot; &lt;-&gt; &quot;, fixed = TRUE)
+    vapply(
+      parts,
+      function(pair) {
+        if (length(pair) != 2) return(paste(pair, collapse = &quot; &lt;-&gt; &quot;))
+        left &lt;- pair[[1]]
+        right &lt;- pair[[2]]
+        left_i &lt;- suppressWarnings(as.integer(left))
+        right_i &lt;- suppressWarnings(as.integer(right))
+        if (!is.na(left_i) &amp;&amp; left_i &gt;= 1 &amp;&amp; left_i &lt;= length(left_levels)) {
+          left &lt;- left_levels[[left_i]]
+        }
+        if (!is.na(right_i) &amp;&amp; right_i &gt;= 1 &amp;&amp; right_i &lt;= length(right_levels)) {
+          right &lt;- right_levels[[right_i]]
+        }
+        paste(left, right, sep = &quot; &lt;-&gt; &quot;)
+      },
+      character(1)
+    )
+  }
+
+  if (nrow(interface_results$tcell_malignant) &gt; 0) {
+    interface_results$tcell_malignant$feature_display &lt;- decode_interface_pair_label(
+      interface_results$tcell_malignant$feature,
+      left_levels = tcell_state_levels,
+      right_levels = malignant_b_state_levels
+    )
+  }
+  if (nrow(cross_interface_limma) &gt; 0) {
+    cross_interface_limma$feature_display &lt;- decode_interface_pair_label(
+      cross_interface_limma$feature,
+      left_levels = tcell_state_levels,
+      right_levels = malignant_b_state_levels
+    )
+  }
+  if (nrow(interface_results$tcell_candidate_malignant_b_call) &gt; 0) {
+    interface_results$tcell_candidate_malignant_b_call$feature_display &lt;- decode_interface_pair_label(
+      interface_results$tcell_candidate_malignant_b_call$feature,
+      left_levels = tcell_state_levels,
+      right_levels = candidate_malignant_b_positive_calls
+    )
+  }
+  if (nrow(candidate_call_interface_limma) &gt; 0) {
+    candidate_call_interface_limma$feature_display &lt;- decode_interface_pair_label(
+      candidate_call_interface_limma$feature,
+      left_levels = tcell_state_levels,
+      right_levels = candidate_malignant_b_positive_calls
+    )
+  }
+
+  prioritized_celltype &lt;- interface_results$celltype[
+    grepl(&quot;macrophage&quot;, interface_results$celltype$feature, ignore.case = TRUE) &amp;
+      grepl(&quot;CD8 cytotoxic|CD4 helper|Treg|CXCR5\\+ lymph|NK&quot;, interface_results$celltype$feature),
+    ,
+    drop = FALSE
+  ]
+  prioritized_cross &lt;- interface_results$tcell_malignant[
+    grepl(&quot;^(CD8 exhausted|Treg|Tfh / CXCR5\\+ helper) &lt;-&gt;&quot;, interface_results$tcell_malignant$feature_display),
+    ,
+    drop = FALSE
+  ]
+  prioritized_candidate_call &lt;- interface_results$tcell_candidate_malignant_b_call[
+    grepl(&quot;^(CD8 exhausted|Treg|Tfh / CXCR5\\+ helper|CD8 cytotoxic) &lt;-&gt;&quot;, interface_results$tcell_candidate_malignant_b_call$feature_display),
+    ,
+    drop = FALSE
+  ]
+  prioritized_candidate_program &lt;- interface_results$tcell_candidate_malignant_b_program[
+    grepl(&quot;^(CD8 exhausted|Treg|Tfh / CXCR5\\+ helper|CD8 cytotoxic) &lt;-&gt;&quot;, interface_results$tcell_candidate_malignant_b_program$feature),
+    ,
+    drop = FALSE
+  ]
+
+  if (nrow(prioritized_celltype) &gt; 0) {
+    p_interface_box &lt;- make_condition_boxplot(
+      prioritized_celltype,
+      feature_col = &quot;feature&quot;,
+      value_col = &quot;enrichment&quot;,
+      title_text = &quot;Macrophage-T-cell interface enrichment by core&quot;,
+      y_label = &quot;log2 observed / permuted&quot;,
+      add_pairwise = TRUE
+    )
+    show_and_save_plot(
+      p_interface_box,
+      filename = file.path(interface_out_dir, &quot;prioritized_celltype_interface_boxplots.jpg&quot;),
+      width = 12,
+      height = max(4, 2 + 1.2 * ceiling(length(unique(prioritized_celltype$feature)) / 4))
+    )
+  }
+
+  if (nrow(prioritized_cross) &gt; 0) {
+    n_prioritized_cross_features &lt;- length(unique(prioritized_cross$feature_display))
+    p_cross_box &lt;- make_condition_boxplot(
+      prioritized_cross,
+      feature_col = &quot;feature_display&quot;,
+      value_col = &quot;enrichment&quot;,
+      title_text = &quot;T-cell-state to B-cell-program/state interface enrichment by core&quot;,
+      y_label = &quot;log2 observed / permuted&quot;,
+      add_pairwise = TRUE,
+      point_size = 1.2,
+      facet_ncol = 4,
+      facet_label_width = 18
+    )
+    show_and_save_plot(
+      p_cross_box,
+      filename = file.path(interface_out_dir, &quot;prioritized_tcell_malignant_interface_boxplots.jpg&quot;),
+      width = 12,
+      height = max(12, 4.4 * ceiling(n_prioritized_cross_features / 4) + 2)
+    )
+  }
+
+  if (nrow(prioritized_candidate_call) &gt; 0) {
+    p_candidate_call_box &lt;- make_condition_boxplot(
+      prioritized_candidate_call,
+      feature_col = &quot;feature_display&quot;,
+      value_col = &quot;enrichment&quot;,
+      title_text = &quot;T-cell-state to candidate malignant-B-call interface enrichment by core&quot;,
+      y_label = &quot;log2 observed / permuted&quot;,
+      add_pairwise = TRUE
+    )
+    show_and_save_plot(
+      p_candidate_call_box,
+      filename = file.path(interface_out_dir, &quot;prioritized_tcell_candidate_malignant_b_call_interface_boxplots.jpg&quot;),
+      width = 12,
+      height = max(4, 2 + 1.2 * ceiling(length(unique(prioritized_candidate_call$feature)) / 4))
+    )
+  }
+
+  if (nrow(prioritized_candidate_program) &gt; 0) {
+    p_candidate_program_box &lt;- make_condition_boxplot(
+      prioritized_candidate_program,
+      feature_col = &quot;feature&quot;,
+      value_col = &quot;enrichment&quot;,
+      title_text = &quot;T-cell-state to candidate malignant-B-program interface enrichment by core&quot;,
+      y_label = &quot;log2 observed / permuted&quot;,
+      add_pairwise = TRUE
+    )
+    show_and_save_plot(
+      p_candidate_program_box,
+      filename = file.path(interface_out_dir, &quot;prioritized_tcell_candidate_malignant_b_program_interface_boxplots.jpg&quot;),
+      width = 12,
+      height = max(4, 2 + 1.2 * ceiling(length(unique(prioritized_candidate_program$feature)) / 4))
+    )
+  }
+
+  if (nrow(celltype_interface_limma) &gt; 0) {
+    p_celltype_interface_effect &lt;- make_limma_effect_plot(
+      celltype_interface_limma,
+      title_text = &quot;Cell-type interface enrichment: EBV POS vs EBV NEG&quot;
+    )
+    show_and_save_plot(
+      p_celltype_interface_effect,
+      filename = file.path(interface_out_dir, &quot;celltype_interface_effect_summary.jpg&quot;),
+      width = 8,
+      height = 6
+    )
+  }
+
+  if (nrow(cross_interface_limma) &gt; 0) {
+    p_cross_interface_effect &lt;- make_limma_effect_plot(
+      cross_interface_limma,
+      feature_col = &quot;feature_display&quot;,
+      title_text = &quot;T-cell-state to B-cell-program/state interface enrichment&quot;
+    ) +
+      labs(caption = &quot;Pairs are T-cell state &lt;-&gt; B-cell program/state. Positive effects indicate higher interface enrichment in EBV POS.&quot;)
+    show_and_save_plot(
+      p_cross_interface_effect,
+      filename = file.path(interface_out_dir, &quot;tcell_malignant_interface_effect_summary.jpg&quot;),
+      width = 8,
+      height = 6
+    )
+  }
+
+  if (nrow(candidate_call_interface_limma) &gt; 0) {
+    p_candidate_call_interface_effect &lt;- make_limma_effect_plot(
+      candidate_call_interface_limma,
+      feature_col = &quot;feature_display&quot;,
+      title_text = &quot;T-cell-state to candidate malignant-B-call interface enrichment&quot;
+    )
+    show_and_save_plot(
+      p_candidate_call_interface_effect,
+      filename = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_call_interface_effect_summary.jpg&quot;),
+      width = 8,
+      height = 6
+    )
+  }
+
+  if (nrow(candidate_program_interface_limma) &gt; 0) {
+    p_candidate_program_interface_effect &lt;- make_limma_effect_plot(
+      candidate_program_interface_limma,
+      title_text = &quot;T-cell-state to candidate malignant-B-program interface enrichment&quot;
+    )
+    show_and_save_plot(
+      p_candidate_program_interface_effect,
+      filename = file.path(interface_out_dir, &quot;tcell_candidate_malignant_b_program_interface_effect_summary.jpg&quot;),
+      width = 8,
+      height = 6
+    )
+  }
+
+  utils::head(cross_interface_limma)</code></pre>
+<pre><code>##                logFC    AveExpr          t    P.Value adj.P.Val         B
+## 1 &lt;-&gt; 1  0.079654548 0.08291548  1.7151387 0.09957603 0.5227741 -4.922008
+## 1 &lt;-&gt; 2  0.147576855 0.08648136  2.0471545 0.05206798 0.3585071 -4.377608
+## 1 &lt;-&gt; 3  0.021518692 0.07116833  0.3456977 0.73266821 0.8983883 -6.257634
+## 1 &lt;-&gt; 4 -0.008819668 0.05568841 -0.1776394 0.86053973 0.9267351 -6.301884
+## 1 &lt;-&gt; 5  0.098383446 0.02303526  1.6172112 0.11927720 0.5566269 -5.068651
+## 1 &lt;-&gt; 6  0.019532059 0.06667512  0.4393320 0.66446397 0.8967788 -6.220783
+##         feature                                      feature_display
+## 1 &lt;-&gt; 1 1 &lt;-&gt; 1                      CD8 cytotoxic &lt;-&gt; Proliferative
+## 1 &lt;-&gt; 2 1 &lt;-&gt; 2                CD8 cytotoxic &lt;-&gt; GC-like / BCL6-high
+## 1 &lt;-&gt; 3 1 &lt;-&gt; 3                 CD8 cytotoxic &lt;-&gt; BCL2-high survival
+## 1 &lt;-&gt; 4 1 &lt;-&gt; 4      CD8 cytotoxic &lt;-&gt; Plasma-like / PRDM1-XBP1-MZB1
+## 1 &lt;-&gt; 5 1 &lt;-&gt; 5 CD8 cytotoxic &lt;-&gt; Antigen-presentation / HLA-II-high
+## 1 &lt;-&gt; 6 1 &lt;-&gt; 6                  CD8 cytotoxic &lt;-&gt; Other malignant B</code></pre>
+<p><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-1.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-2.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-3.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-4.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-5.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-6.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="pd1-pd-l1-axis-across-ptld-cores" class="section level2"
+number="3">
+<h2><span class="header-section-number">3</span> PD1-PD-L1 axis across
+PTLD cores</h2>
+<p>This section focuses on the PD1-PD-L1 axis at the expression, state,
+and adjacency levels. “High” expression thresholds are defined within
+lineage across the PTLD-only included-cell population and then reused
+for all EBV-status comparisons. Core-level metrics are retained for
+boxplots, while repeated cores from the same patient are averaged before
+limma testing.</p>
+<pre class="r"><code>  pd_axis_out_dir &lt;- file.path(output_root, &quot;EBV_PD1_PDL1_axis&quot;)
+  dir.create(pd_axis_out_dir, showWarnings = FALSE, recursive = TRUE)
+  pd_axis_bundle &lt;- get_cached_rds(
+    make_cache_file(&quot;pd_axis_patient_results&quot;, family = &quot;reports&quot;, segmentation_cache_tag, &quot;candidate_malignant_b_v2&quot;),
+    function() benchmark_stage(&quot;pd_axis_metrics&quot;, {
+      pd_axis_genes &lt;- c(&quot;PDCD1&quot;, &quot;CD274&quot;, &quot;PDCD1LG2&quot;)
+      pd_axis_expr &lt;- do.call(
+        rbind,
+        lapply(names(xenium_by_condition), function(cond) {
+          obj &lt;- xenium_by_condition[[cond]]
+          sample_key &lt;- gsub(&quot; &quot;, &quot;_&quot;, cond)
+          keep_cells &lt;- Cells(obj)[obj$core_type == &quot;PTLD&quot; &amp; obj$core_included]
+          expr_mat &lt;- GetAssayData(obj, layer = &quot;data&quot;)
+          gene_df &lt;- data.frame(
+            key = paste(sample_key, keep_cells, sep = &quot;_&quot;),
+            stringsAsFactors = FALSE
+          )
+          for (gene in pd_axis_genes) {
+            gene_df[[gene]] &lt;- if (gene %in% rownames(expr_mat)) {
+              as.numeric(expr_mat[gene, keep_cells])
+            } else {
+              0
+            }
+          }
+          gene_df
+        })
+      )
+
+      ptld_pd &lt;- merge(ptld_analysis_cells, pd_axis_expr, by = &quot;key&quot;, all.x = TRUE, sort = FALSE)
+      for (gene in pd_axis_genes) {
+        ptld_pd[[gene]][is.na(ptld_pd[[gene]])] &lt;- 0
+      }
+
+      myeloid_labels &lt;- c(&quot;APC-like macrophage&quot;, &quot;M2-like macrophage&quot;, &quot;Dendritic cell&quot;)
+      t_axis_mask &lt;- !is.na(ptld_pd$tcell_state) &amp; ptld_pd$tcell_state != &quot;NK&quot;
+      malignant_mask &lt;- is_candidate_malignant_b_cell(ptld_pd)
+      myeloid_mask &lt;- ptld_pd$cell_type_refined %in% myeloid_labels
+
+      threshold_table &lt;- data.frame(
+        metric = c(
+          &quot;PDCD1_high_in_T_lineage&quot;,
+          &quot;CD274_high_in_candidate_malignant_B&quot;,
+          &quot;PDCD1LG2_high_in_candidate_malignant_B&quot;,
+          &quot;CD274_high_in_myeloid&quot;,
+          &quot;PDCD1LG2_high_in_myeloid&quot;
+        ),
+        threshold = c(
+          stats::quantile(ptld_pd$PDCD1[t_axis_mask], 0.90, na.rm = TRUE),
+          stats::quantile(ptld_pd$CD274[malignant_mask], 0.90, na.rm = TRUE),
+          stats::quantile(ptld_pd$PDCD1LG2[malignant_mask], 0.90, na.rm = TRUE),
+          stats::quantile(ptld_pd$CD274[myeloid_mask], 0.90, na.rm = TRUE),
+          stats::quantile(ptld_pd$PDCD1LG2[myeloid_mask], 0.90, na.rm = TRUE)
+        ),
+        stringsAsFactors = FALSE
+      )
+
+      ptld_pd$pd1_high_t &lt;- t_axis_mask &amp; ptld_pd$PDCD1 &gt;= threshold_table$threshold[threshold_table$metric == &quot;PDCD1_high_in_T_lineage&quot;]
+      ptld_pd$pdl1_high_candidate_malignant &lt;- malignant_mask &amp; ptld_pd$CD274 &gt;= threshold_table$threshold[threshold_table$metric == &quot;CD274_high_in_candidate_malignant_B&quot;]
+      ptld_pd$pdl2_high_candidate_malignant &lt;- malignant_mask &amp; ptld_pd$PDCD1LG2 &gt;= threshold_table$threshold[threshold_table$metric == &quot;PDCD1LG2_high_in_candidate_malignant_B&quot;]
+      ptld_pd$pdl1_high_myeloid &lt;- myeloid_mask &amp; ptld_pd$CD274 &gt;= threshold_table$threshold[threshold_table$metric == &quot;CD274_high_in_myeloid&quot;]
+      ptld_pd$pdl2_high_myeloid &lt;- myeloid_mask &amp; ptld_pd$PDCD1LG2 &gt;= threshold_table$threshold[threshold_table$metric == &quot;PDCD1LG2_high_in_myeloid&quot;]
+
+  compute_pd_axis_interface_metrics &lt;- function(core_df, edge_df) {
+    idx &lt;- match(c(edge_df$source_cell, edge_df$target_cell), core_df$key)
+    idx &lt;- idx[!is.na(idx)]
+    if (length(idx) == 0) {
+      return(c(
+        frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B = NA_real_,
+        frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B = NA_real_,
+        frac_pd1_high_t_adj_pdl1_high_myeloid = NA_real_,
+        frac_pd1_high_t_adj_pdl2_high_myeloid = NA_real_
+      ))
+    }
+
+    source_map &lt;- match(edge_df$source_cell, core_df$key)
+    target_map &lt;- match(edge_df$target_cell, core_df$key)
+    valid_edges &lt;- !is.na(source_map) &amp; !is.na(target_map)
+    source_map &lt;- source_map[valid_edges]
+    target_map &lt;- target_map[valid_edges]
+
+    pd1_cells &lt;- core_df$key[core_df$pd1_high_t]
+    if (length(pd1_cells) == 0) {
+      return(c(
+        frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B = NA_real_,
+        frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B = NA_real_,
+        frac_pd1_high_t_adj_pdl1_high_myeloid = NA_real_,
+        frac_pd1_high_t_adj_pdl2_high_myeloid = NA_real_
+      ))
+    }
+
+    pd1_touch &lt;- function(target_flag) {
+      source_hits &lt;- core_df$key[source_map][core_df$pd1_high_t[source_map] &amp; target_flag[target_map]]
+      target_hits &lt;- core_df$key[target_map][core_df$pd1_high_t[target_map] &amp; target_flag[source_map]]
+      length(unique(c(source_hits, target_hits))) / length(pd1_cells)
+    }
+
+    c(
+      frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B = pd1_touch(core_df$pdl1_high_candidate_malignant),
+      frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B = pd1_touch(core_df$pdl2_high_candidate_malignant),
+      frac_pd1_high_t_adj_pdl1_high_myeloid = pd1_touch(core_df$pdl1_high_myeloid),
+      frac_pd1_high_t_adj_pdl2_high_myeloid = pd1_touch(core_df$pdl2_high_myeloid)
+    )
+  }
+
+      core_split &lt;- split(ptld_pd, interaction(ptld_pd$sample_key, ptld_pd$core_id, drop = TRUE))
+      edge_split &lt;- split(neighborhood_res$edges, interaction(neighborhood_res$edges$sample_key, neighborhood_res$edges$core_id, drop = TRUE))
+      # Keep this loop sequential. The closure touches the full PTLD analysis
+      # table, and future workers try to serialize tens of GiB of globals.
+      pd_axis_metrics &lt;- lapply(
+        names(core_split),
+        function(nm) {
+          core_df &lt;- core_split[[nm]]
+          base_row &lt;- unique(core_df[, c(&quot;condition&quot;, &quot;core_id&quot;, &quot;patient_id&quot;), drop = FALSE])[1, , drop = FALSE]
+          base_row$sample_id &lt;- paste(base_row$condition, base_row$core_id, sep = &quot;__&quot;)
+          base_row$core_total &lt;- nrow(core_df)
+          core_t_mask &lt;- !is.na(core_df$tcell_state) &amp; core_df$tcell_state != &quot;NK&quot;
+          core_malignant_mask &lt;- is_candidate_malignant_b_cell(core_df)
+          core_myeloid_mask &lt;- core_df$cell_type_refined %in% myeloid_labels
+
+          metric_rows &lt;- rbind(
+            data.frame(feature = &quot;mean_PDCD1_t_lineage&quot;, value = if (any(core_t_mask)) mean(core_df$PDCD1[core_t_mask], na.rm = TRUE) else NA_real_),
+            data.frame(feature = &quot;frac_PD1_high_t_lineage&quot;, value = if (any(core_t_mask)) mean(core_df$pd1_high_t[core_t_mask], na.rm = TRUE) else NA_real_),
+            data.frame(feature = &quot;mean_CD274_candidate_malignant_B&quot;, value = if (any(core_malignant_mask)) mean(core_df$CD274[core_malignant_mask], na.rm = TRUE) else NA_real_),
+            data.frame(feature = &quot;frac_CD274_high_candidate_malignant_B&quot;, value = if (any(core_malignant_mask)) mean(core_df$pdl1_high_candidate_malignant[core_malignant_mask], na.rm = TRUE) else NA_real_),
+            data.frame(feature = &quot;mean_PDCD1LG2_candidate_malignant_B&quot;, value = if (any(core_malignant_mask)) mean(core_df$PDCD1LG2[core_malignant_mask], na.rm = TRUE) else NA_real_),
+            data.frame(feature = &quot;frac_PDCD1LG2_high_candidate_malignant_B&quot;, value = if (any(core_malignant_mask)) mean(core_df$pdl2_high_candidate_malignant[core_malignant_mask], na.rm = TRUE) else NA_real_),
+            data.frame(feature = &quot;mean_CD274_myeloid&quot;, value = if (any(core_myeloid_mask)) mean(core_df$CD274[core_myeloid_mask], na.rm = TRUE) else NA_real_),
+            data.frame(feature = &quot;frac_CD274_high_myeloid&quot;, value = if (any(core_myeloid_mask)) mean(core_df$pdl1_high_myeloid[core_myeloid_mask], na.rm = TRUE) else NA_real_),
+            data.frame(feature = &quot;mean_PDCD1LG2_myeloid&quot;, value = if (any(core_myeloid_mask)) mean(core_df$PDCD1LG2[core_myeloid_mask], na.rm = TRUE) else NA_real_),
+            data.frame(feature = &quot;frac_PDCD1LG2_high_myeloid&quot;, value = if (any(core_myeloid_mask)) mean(core_df$pdl2_high_myeloid[core_myeloid_mask], na.rm = TRUE) else NA_real_)
+          )
+
+          if (nm %in% names(edge_split)) {
+            interface_metrics &lt;- compute_pd_axis_interface_metrics(core_df, edge_split[[nm]])
+            metric_rows &lt;- rbind(
+              metric_rows,
+              data.frame(feature = names(interface_metrics), value = as.numeric(interface_metrics), stringsAsFactors = FALSE)
+            )
+          }
+
+          cbind(base_row, metric_rows, stringsAsFactors = FALSE)
+        }
+      )
+      pd_axis_metrics &lt;- do.call(rbind, pd_axis_metrics)
+      pd_axis_metrics$value[!is.finite(pd_axis_metrics$value)] &lt;- NA_real_
+      pd_axis_metrics$test_value &lt;- ifelse(grepl(&quot;^frac_&quot;, pd_axis_metrics$feature), logit_clamped(pd_axis_metrics$value), pd_axis_metrics$value)
+      pd_axis_metrics &lt;- pd_axis_metrics[!is.na(pd_axis_metrics$test_value), , drop = FALSE]
+
+      pd_axis_patient_metrics &lt;- collapse_metrics_to_patient(
+        pd_axis_metrics,
+        value_cols = c(&quot;value&quot;, &quot;test_value&quot;),
+        weight_col = &quot;core_total&quot;
+      )
+      pd_axis_limma &lt;- run_core_feature_limma(pd_axis_patient_metrics, sample_col = &quot;patient_id&quot;, value_col = &quot;test_value&quot;)
+      pd_axis_limma$feature &lt;- rownames(pd_axis_limma)
+
+      list(
+        ptld_analysis_cells = ptld_pd,
+        threshold_table = threshold_table,
+        pd_axis_metrics = pd_axis_metrics,
+        pd_axis_patient_metrics = pd_axis_patient_metrics,
+        pd_axis_limma = pd_axis_limma
+      )
+    }),
+    refresh = refresh_reports,
+    metadata = list(stage = &quot;pd_axis_patient_results&quot;)
+  )</code></pre>
+<pre><code>## Using cache: pd_axis_patient_results_reports_20260328_layered_cache_v1_candidate_malignant_b_v2proseg_primary_v1</code></pre>
+<pre class="r"><code>  ptld_analysis_cells &lt;- pd_axis_bundle$ptld_analysis_cells
+  threshold_table &lt;- pd_axis_bundle$threshold_table
+  pd_axis_metrics &lt;- pd_axis_bundle$pd_axis_metrics
+  pd_axis_patient_metrics &lt;- pd_axis_bundle$pd_axis_patient_metrics
+  pd_axis_limma &lt;- pd_axis_bundle$pd_axis_limma
+
+  write.csv(threshold_table, file = file.path(pd_axis_out_dir, &quot;pd_axis_thresholds.csv&quot;), row.names = FALSE)
+  write.csv(pd_axis_metrics, file = file.path(pd_axis_out_dir, &quot;pd_axis_metrics_by_core.csv&quot;), row.names = FALSE)
+  write.csv(pd_axis_patient_metrics, file = file.path(pd_axis_out_dir, &quot;pd_axis_metrics_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(pd_axis_limma, file = file.path(pd_axis_out_dir, &quot;pd_axis_limma.csv&quot;), row.names = FALSE)
+  write.csv(pd_axis_metrics, file = file.path(pd_axis_out_dir, &quot;pd_axis_metrics_by_core.csv&quot;), row.names = FALSE)
+  write.csv(pd_axis_patient_metrics, file = file.path(pd_axis_out_dir, &quot;pd_axis_metrics_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(pd_axis_patient_metrics, file = file.path(pd_axis_out_dir, &quot;pd_axis_metrics_patient_level.csv&quot;), row.names = FALSE)
+  write.csv(pd_axis_limma, file = file.path(pd_axis_out_dir, &quot;pd_axis_patient_level_limma.csv&quot;), row.names = FALSE)
+
+  pd_axis_pairwise &lt;- do.call(
+    rbind,
+    lapply(split(pd_axis_metrics, pd_axis_metrics$feature), function(df) {
+      df &lt;- df[!is.na(df$value), , drop = FALSE]
+      cond_counts &lt;- table(df$condition)
+      cond_counts &lt;- cond_counts[c(&quot;EBV NEG&quot;, &quot;EBV POS&quot;)]
+      cond_counts[is.na(cond_counts)] &lt;- 0
+      if (nrow(df) == 0 || any(cond_counts == 0)) {
+        return(data.frame(
+          feature = unique(df$feature)[1],
+          method = &quot;wilcox.test&quot;,
+          p_value = NA_real_,
+          p_adj = NA_real_,
+          stringsAsFactors = FALSE
+        ))
+      }
+      wt &lt;- stats::wilcox.test(value ~ condition, data = df, exact = FALSE)
+      data.frame(
+        feature = unique(df$feature)[1],
+        method = &quot;wilcox.test&quot;,
+        p_value = wt$p.value,
+        stringsAsFactors = FALSE
+      )
+    })
+  )
+  pd_axis_pairwise$p_adj &lt;- stats::p.adjust(pd_axis_pairwise$p_value, method = &quot;BH&quot;)
+  write.csv(pd_axis_pairwise, file = file.path(pd_axis_out_dir, &quot;pd_axis_pairwise_wilcox.csv&quot;), row.names = FALSE)
+
+  p_pd_axis_box &lt;- make_condition_boxplot(
+    pd_axis_metrics,
+    feature_col = &quot;feature&quot;,
+    value_col = &quot;value&quot;,
+    title_text = &quot;PD1-PD-L1 axis metrics by PTLD core&quot;,
+    y_label = &quot;Metric value&quot;,
+    add_pairwise = TRUE,
+    point_size = 1
+  )
+  show_and_save_plot(
+    p_pd_axis_box,
+    filename = file.path(pd_axis_out_dir, &quot;pd_axis_boxplots.jpg&quot;),
+    width = 14,
+    height = 12
+  )
+
+  p_pd_axis_effect &lt;- make_limma_effect_plot(pd_axis_limma, title_text = &quot;PD1-PD-L1 axis metrics: EBV POS vs EBV NEG&quot;)
+  show_and_save_plot(
+    p_pd_axis_effect,
+    filename = file.path(pd_axis_out_dir, &quot;pd_axis_effect_summary.jpg&quot;),
+    width = 8,
+    height = 6
+  )
+
+  utils::head(pd_axis_limma)</code></pre>
+<pre><code>##                                                             logFC    AveExpr
+## frac_CD274_high_candidate_malignant_B                6.276620e-16  6.9067548
+## frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B -4.522289e-01  5.7694303
+## frac_pd1_high_t_adj_pdl1_high_myeloid                6.278868e-01 -6.5432414
+## frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B  9.885691e-01  0.1160487
+## frac_pd1_high_t_adj_pdl2_high_myeloid                6.278868e-01 -6.5432414
+## frac_PD1_high_t_lineage                              6.276620e-16  6.9067548
+##                                                                 t    P.Value
+## frac_CD274_high_candidate_malignant_B                7.319529e-13 1.00000000
+## frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B -4.896959e-01 0.63048163
+## frac_pd1_high_t_adj_pdl1_high_myeloid                8.548191e-01 0.40429806
+## frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B  2.210169e+00 0.04079531
+## frac_pd1_high_t_adj_pdl2_high_myeloid                8.548191e-01 0.40429806
+## frac_PD1_high_t_lineage                              7.319529e-13 1.00000000
+##                                                     adj.P.Val         B
+## frac_CD274_high_candidate_malignant_B               1.0000000 -7.410382
+## frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B 0.7881020 -7.284895
+## frac_pd1_high_t_adj_pdl1_high_myeloid               0.5775687 -7.033271
+## frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B 0.1248089 -5.143581
+## frac_pd1_high_t_adj_pdl2_high_myeloid               0.5775687 -7.033271
+## frac_PD1_high_t_lineage                             1.0000000 -7.410382
+##                                                                                                 feature
+## frac_CD274_high_candidate_malignant_B                             frac_CD274_high_candidate_malignant_B
+## frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B
+## frac_pd1_high_t_adj_pdl1_high_myeloid                             frac_pd1_high_t_adj_pdl1_high_myeloid
+## frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B
+## frac_pd1_high_t_adj_pdl2_high_myeloid                             frac_pd1_high_t_adj_pdl2_high_myeloid
+## frac_PD1_high_t_lineage                                                         frac_PD1_high_t_lineage</code></pre>
+<p><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_pd1_pdl1_axis-1.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_pd1_pdl1_axis-2.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="plot-artifact-viewer" class="section level2" number="4">
+<h2><span class="header-section-number">4</span> Plot Artifact
+Viewer</h2>
+<p>Detailed plot artifact thumbnails and in-page image viewing have been
+moved to the standalone local viewer:</p>
+<ul>
+<li>Source:
+<code>plot artifact viewer</code></li>
+<li>Rendered HTML:
+<code>Analysis/Xenium_artifact_viewers/Xenium_plot_artifact_viewer.html</code></li>
+</ul>
+<p>This main website section keeps only the analysis output summaries so
+the rendered page stays smaller.</p>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Andrew Portuguese" />
+
+<meta name="date" content="2026-06-02" />
+
+<title>08. Xenium SpatialScore</title>
+
+<script src="08_spatialscore_files/header-attrs-2.31/header-attrs.js"></script>
+<script src="08_spatialscore_files/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="08_spatialscore_files/bootstrap-3.3.5/css/lumen.min.css" rel="stylesheet" />
+<script src="08_spatialscore_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="08_spatialscore_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="08_spatialscore_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="08_spatialscore_files/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="08_spatialscore_files/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="08_spatialscore_files/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="08_spatialscore_files/navigation-1.1/tabsets.js"></script>
+<script src="08_spatialscore_files/navigation-1.1/codefolding.js"></script>
+<link href="08_spatialscore_files/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="08_spatialscore_files/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">08. Xenium SpatialScore</h1>
+<h4 class="author">Andrew Portuguese</h4>
+<h4 class="date">June 02, 2026</h4>
+
+</div>
+
+
+<style>
+body {
+  padding-top: 58px;
+}
+.tocify {
+  top: 72px !important;
+}
+.xenium-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  min-height: 50px;
+  box-sizing: border-box;
+  background-color: #0F2E3D;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 15px;
+  font-weight: 300;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+.xenium-navbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 28px;
+  box-sizing: border-box;
+}
+.xenium-navbar__brand {
+  color: inherit;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.xenium-navbar__right {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+.xenium-navbar__link,
+.xenium-navbar__dropbtn {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 15px 12px;
+  line-height: 20px;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.xenium-navbar__link:hover,
+.xenium-navbar__link:focus,
+.xenium-navbar__dropbtn:hover,
+.xenium-navbar__dropbtn:focus {
+  color: #ffffff;
+  text-decoration: none;
+}
+.xenium-navbar__link.is-active,
+.xenium-navbar__dropbtn.is-active {
+  color: #ffffff;
+  font-weight: 500;
+}
+.xenium-navbar__dropdown {
+  position: relative;
+  display: inline-flex;
+}
+.xenium-navbar__dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  min-width: 250px;
+  padding: 4px 0;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+.xenium-navbar__dropdown:hover .xenium-navbar__dropdown-content,
+.xenium-navbar__dropdown:focus-within .xenium-navbar__dropdown-content {
+  display: block;
+}
+.xenium-navbar__dropdown-content .xenium-navbar__link {
+  display: block;
+  color: #111827;
+  padding: 7px 18px;
+  white-space: nowrap;
+}
+.xenium-navbar__dropdown-content .xenium-navbar__link:hover,
+.xenium-navbar__dropdown-content .xenium-navbar__link:focus {
+  background: #e5e7eb;
+  color: #111827;
+}
+.xenium-navbar__dropdown-content .xenium-navbar__link.is-active {
+  background: #dbeafe;
+  color: #111827;
+  font-weight: 600;
+}
+@media screen and (max-width: 768px) {
+  body {
+    padding-top: 92px;
+  }
+  .tocify {
+    top: 104px !important;
+  }
+  .xenium-navbar__inner {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 0 14px;
+  }
+  .xenium-navbar__right {
+    width: 100%;
+  }
+  .xenium-navbar__brand {
+    padding-top: 10px;
+  }
+  .xenium-navbar__link,
+  .xenium-navbar__dropbtn {
+    padding: 9px 10px;
+  }
+  .xenium-navbar__dropdown-content {
+    left: 0;
+    right: auto;
+  }
+}
+@media print {
+  body {
+    padding-top: 0;
+  }
+  .xenium-navbar {
+    display: none;
+  }
+}
+</style>
+<header class="xenium-navbar" role="banner">
+<nav class="xenium-navbar__inner" aria-label="Xenium report navigation">
+<a class="xenium-navbar__brand" href="../Xenium.html">DLBCL PTLD
+Xenium</a>
+<div class="xenium-navbar__right">
+<a class="xenium-navbar__link" href="../Xenium.html">Home</a>
+<div class="xenium-navbar__dropdown">
+<button class="xenium-navbar__dropbtn is-active" type="button">
+Sections <span aria-hidden="true"> ▾</span>
+</button>
+<div class="xenium-navbar__dropdown-content">
+<a class="xenium-navbar__link" href="00_setup.html">00
+Setup/QC</a><a class="xenium-navbar__link" href="01_preprocess_qc.html">01
+Preprocess/QC</a><a class="xenium-navbar__link" href="02_shared_atlas_and_core_mapping.html">02
+Atlas/Core
+Mapping</a><a class="xenium-navbar__link" href="03_cell_annotation.html">03
+Cell
+Annotation</a><a class="xenium-navbar__link" href="04_composition_and_cluster_annotation.html">04
+Composition/Clusters</a><a class="xenium-navbar__link" href="05_spatial_neighborhoods_and_interfaces.html">05
+Spatial/Interfaces</a><a class="xenium-navbar__link" href="06_differential_expression.html">06
+DE</a><a class="xenium-navbar__link" href="07_patient_characteristics.html">07
+Patient
+Characteristics</a><a class="xenium-navbar__link is-active" href="08_spatialscore.html">08
+SpatialScore</a>
+</div>
+</div>
+</div>
+</nav>
+</header>
+<div id="spatialscore-proximity-to-candidate-malignant-b-cells"
+class="section level2" number="1">
+<h2><span class="header-section-number">1</span> SpatialScore proximity
+to candidate malignant-B cells</h2>
+<p>This section adapts the SpatialScore idea to the current
+Proseg-backed PTLD atlas. For each CD4-like T cell in an included PTLD
+core, SpatialScore is calculated as the distance to the nearest
+candidate malignant-B cell divided by the distance to the nearest Treg.
+Values below 1 mean the CD4-like T cell is closer to candidate
+malignant-B cells than to Tregs.</p>
+<pre class="r"><code>  if (!requireNamespace(&quot;FNN&quot;, quietly = TRUE)) {
+    stop(&quot;Install the &#39;FNN&#39; package to run SpatialScore nearest-neighbor distances.&quot;)
+  }
+
+  spatialscore_out_dir &lt;- file.path(output_root, &quot;EBV_spatialscore&quot;)
+  dir.create(spatialscore_out_dir, showWarnings = FALSE, recursive = TRUE)
+
+  spatialscore_min_cells &lt;- 10L
+  spatialscore_epsilon &lt;- 1
+  candidate_malignant_b_positive_calls &lt;- c(&quot;Candidate malignant B&quot;, &quot;EBV-positive candidate malignant B&quot;)
+
+  decode_level_values &lt;- function(x, level_values) {
+    out &lt;- as.character(x)
+    idx &lt;- suppressWarnings(as.integer(out))
+    use_idx &lt;- !is.na(idx) &amp; idx &gt;= 1 &amp; idx &lt;= length(level_values)
+    out[use_idx] &lt;- level_values[idx[use_idx]]
+    out
+  }
+
+  nearest_distance &lt;- function(query_df, target_df) {
+    query_df &lt;- query_df[is.finite(query_df$x) &amp; is.finite(query_df$y), , drop = FALSE]
+    target_df &lt;- target_df[is.finite(target_df$x) &amp; is.finite(target_df$y), , drop = FALSE]
+    FNN::get.knnx(
+      data = as.matrix(target_df[, c(&quot;x&quot;, &quot;y&quot;), drop = FALSE]),
+      query = as.matrix(query_df[, c(&quot;x&quot;, &quot;y&quot;), drop = FALSE]),
+      k = 1
+    )$nn.dist[, 1]
+  }
+
+  ptld_cells &lt;- build_ptld_analysis_cells(xenium_by_condition, centroids_by_condition)
+  ptld_cells &lt;- ptld_cells[
+    is.finite(ptld_cells$x) &amp;
+      is.finite(ptld_cells$y) &amp;
+      !is.na(ptld_cells$patient_id) &amp;
+      ptld_cells$patient_id != &quot;&quot; &amp;
+      !is.na(ptld_cells$analysis_ebv_group) &amp;
+      ptld_cells$analysis_ebv_group %in% c(&quot;EBV POS&quot;, &quot;EBV NEG&quot;),
+    ,
+    drop = FALSE
+  ]
+  ptld_cells$condition &lt;- as.character(ptld_cells$analysis_ebv_group)
+  ptld_cells$tcell_state_label &lt;- decode_level_values(ptld_cells$tcell_state, tcell_state_levels)
+  ptld_cells$candidate_malignant_b_spatialscore &lt;- as.character(ptld_cells$candidate_malignant_b_call) %in% candidate_malignant_b_positive_calls
+
+  cd4_tcell_states_to_score &lt;- intersect(c(&quot;CD4 helper&quot;, &quot;Tfh / CXCR5+ helper&quot;), tcell_state_levels)
+  triplet_definition &lt;- data.frame(
+    role = c(&quot;CT1&quot;, &quot;CT2&quot;, &quot;CT3&quot;),
+    definition = c(
+      paste(&quot;CD4-like T-cell states:&quot;, paste(cd4_tcell_states_to_score, collapse = &quot;; &quot;)),
+      paste(&quot;Candidate malignant-B calls:&quot;, paste(candidate_malignant_b_positive_calls, collapse = &quot;; &quot;)),
+      &quot;Treg cells&quot;
+    ),
+    min_cells_per_core_state = spatialscore_min_cells,
+    spatialscore_formula = &quot;(distance_from_CD4_T_cell_to_nearest_candidate_malignant_B + 1) / (distance_from_CD4_T_cell_to_nearest_Treg + 1)&quot;,
+    low_score_interpretation = &quot;SpatialScore &lt; 1 means the CD4-like T cell is closer to candidate malignant-B cells than to Tregs&quot;,
+    stringsAsFactors = FALSE
+  )
+  write.csv(triplet_definition, file = file.path(spatialscore_out_dir, &quot;spatialscore_triplet_definition.csv&quot;), row.names = FALSE)
+
+  core_split &lt;- split(ptld_cells, interaction(ptld_cells$sample_key, ptld_cells$core_id, drop = TRUE))
+  cell_rows &lt;- list()
+  score_rows &lt;- list()
+  skip_rows &lt;- list()
+  expand_base_info &lt;- function(base_info, n) {
+    data.frame(
+      sample_key = rep(as.character(base_info$sample_key), n),
+      condition = rep(as.character(base_info$condition), n),
+      core_id = rep(as.character(base_info$core_id), n),
+      patient_id = rep(as.character(base_info$patient_id), n),
+      stringsAsFactors = FALSE
+    )
+  }
+  for (core_name in names(core_split)) {
+    core_df &lt;- core_split[[core_name]]
+    base_info &lt;- unique(core_df[, c(&quot;sample_key&quot;, &quot;condition&quot;, &quot;core_id&quot;, &quot;patient_id&quot;), drop = FALSE])[1, , drop = FALSE]
+    ct2_df &lt;- core_df[core_df$candidate_malignant_b_spatialscore, , drop = FALSE]
+    ct3_df &lt;- core_df[core_df$tcell_state_label %in% &quot;Treg&quot;, , drop = FALSE]
+    for (state_name in cd4_tcell_states_to_score) {
+      ct1_df &lt;- core_df[core_df$tcell_state_label %in% state_name, , drop = FALSE]
+      n_ct1 &lt;- nrow(ct1_df)
+      n_ct2 &lt;- nrow(ct2_df)
+      n_ct3 &lt;- nrow(ct3_df)
+      skip_reason &lt;- character()
+      if (n_ct1 &lt; spatialscore_min_cells) skip_reason &lt;- c(skip_reason, paste0(&quot;CT1 &quot;, state_name, &quot; cells &lt; &quot;, spatialscore_min_cells))
+      if (n_ct2 &lt; spatialscore_min_cells) skip_reason &lt;- c(skip_reason, paste0(&quot;CT2 candidate malignant-B cells &lt; &quot;, spatialscore_min_cells))
+      if (n_ct3 &lt; spatialscore_min_cells) skip_reason &lt;- c(skip_reason, paste0(&quot;CT3 Treg cells &lt; &quot;, spatialscore_min_cells))
+      if (length(skip_reason) &gt; 0) {
+        skip_rows[[length(skip_rows) + 1]] &lt;- cbind(
+          expand_base_info(base_info, 1),
+          data.frame(
+            feature = state_name,
+            n_ct1 = n_ct1,
+            n_ct2 = n_ct2,
+            n_ct3 = n_ct3,
+            skip_reason = paste(skip_reason, collapse = &quot;; &quot;),
+            stringsAsFactors = FALSE
+          )
+        )
+        next
+      }
+
+      ct1_to_ct2 &lt;- nearest_distance(ct1_df, ct2_df)
+      ct1_to_ct3 &lt;- nearest_distance(ct1_df, ct3_df)
+      cell_values &lt;- (ct1_to_ct2 + spatialscore_epsilon) / (ct1_to_ct3 + spatialscore_epsilon)
+      median_ct1_to_ct2 &lt;- stats::median(ct1_to_ct2, na.rm = TRUE)
+      median_ct1_to_ct3 &lt;- stats::median(ct1_to_ct3, na.rm = TRUE)
+      cell_rows[[length(cell_rows) + 1]] &lt;- cbind(
+        expand_base_info(base_info, length(cell_values)),
+        data.frame(
+          sample_id = paste(base_info$condition, base_info$core_id, sep = &quot;__&quot;),
+          feature = state_name,
+          cell_key = ct1_df$key,
+          cell_id = ct1_df$cell_id,
+          distance_to_candidate_malignant_b = ct1_to_ct2,
+          distance_to_treg = ct1_to_ct3,
+          value = cell_values,
+          stringsAsFactors = FALSE
+        )
+      )
+      score_rows[[length(score_rows) + 1]] &lt;- cbind(
+        expand_base_info(base_info, 1),
+        data.frame(
+          sample_id = paste(base_info$condition, base_info$core_id, sep = &quot;__&quot;),
+          feature = state_name,
+          n_ct1 = n_ct1,
+          n_ct2 = n_ct2,
+          n_ct3 = n_ct3,
+          median_ct1_to_candidate_malignant_b = median_ct1_to_ct2,
+          median_ct1_to_treg = median_ct1_to_ct3,
+          value = stats::median(cell_values, na.rm = TRUE),
+          stringsAsFactors = FALSE
+        )
+      )
+    }
+  }
+
+  spatialscore_by_cell &lt;- if (length(cell_rows) &gt; 0) do.call(rbind, cell_rows) else data.frame()
+  spatialscore_by_core &lt;- if (length(score_rows) &gt; 0) do.call(rbind, score_rows) else data.frame()
+  spatialscore_skip_reasons &lt;- if (length(skip_rows) &gt; 0) do.call(rbind, skip_rows) else data.frame()
+  write.csv(spatialscore_by_cell, file = file.path(spatialscore_out_dir, &quot;spatialscore_by_cell.csv&quot;), row.names = FALSE)
+  write.csv(spatialscore_by_core, file = file.path(spatialscore_out_dir, &quot;spatialscore_by_core.csv&quot;), row.names = FALSE)
+  write.csv(spatialscore_skip_reasons, file = file.path(spatialscore_out_dir, &quot;spatialscore_skip_reasons.csv&quot;), row.names = FALSE)
+
+  if (nrow(spatialscore_by_core) &gt; 0) {
+    spatialscore_patient_res &lt;- run_patient_feature_limma(
+      spatialscore_by_core,
+      feature_col = &quot;feature&quot;,
+      patient_col = &quot;patient_id&quot;,
+      value_col = &quot;value&quot;,
+      condition_col = &quot;condition&quot;
+    )
+    spatialscore_by_patient &lt;- spatialscore_patient_res$patient_metrics
+    spatialscore_limma &lt;- spatialscore_patient_res$limma
+  } else {
+    spatialscore_by_patient &lt;- data.frame()
+    spatialscore_limma &lt;- data.frame()
+  }
+  write.csv(spatialscore_by_patient, file = file.path(spatialscore_out_dir, &quot;spatialscore_by_patient.csv&quot;), row.names = FALSE)
+  write.csv(spatialscore_limma, file = file.path(spatialscore_out_dir, &quot;spatialscore_patient_level_limma.csv&quot;), row.names = FALSE)
+
+  if (nrow(spatialscore_by_core) &gt; 0) {
+    p_spatialscore_box &lt;- make_condition_boxplot(
+      spatialscore_by_core,
+      feature_col = &quot;feature&quot;,
+      value_col = &quot;value&quot;,
+      title_text = &quot;SpatialScore: CD4-like T-cell proximity to candidate malignant-B cells vs Tregs&quot;,
+      y_label = &quot;SpatialScore: distance to candidate B / distance to Treg&quot;
+    ) +
+      ggplot2::geom_hline(yintercept = 1, linetype = 2, color = &quot;grey45&quot;) +
+      ggplot2::labs(caption = &quot;Values below 1 mean CD4-like T cells are closer to candidate malignant-B cells than to Tregs.&quot;)
+    show_and_save_plot(
+      p_spatialscore_box,
+      filename = file.path(spatialscore_out_dir, &quot;spatialscore_by_core_boxplots.jpg&quot;),
+      width = 12,
+      height = 6
+    )
+  }
+
+  if (nrow(spatialscore_limma) &gt; 0) {
+    p_spatialscore_effect &lt;- make_limma_effect_plot(
+      spatialscore_limma,
+      title_text = &quot;SpatialScore patient-level effect: EBV POS vs EBV NEG&quot;
+    ) +
+      ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.08, 0.22))) +
+      ggplot2::coord_cartesian(clip = &quot;off&quot;) +
+      ggplot2::labs(caption = &quot;Positive EBV effect means a higher tumor/Treg distance ratio in EBV POS patients.&quot;)
+    show_and_save_plot(
+      p_spatialscore_effect,
+      filename = file.path(spatialscore_out_dir, &quot;spatialscore_patient_level_effect_summary.jpg&quot;),
+      width = 8,
+      height = 6
+    )
+  }
+
+  if (nrow(spatialscore_by_patient) &gt; 0) {
+    spatialscore_by_patient$patient_display &lt;- paste(spatialscore_by_patient$condition, spatialscore_by_patient$patient_id, sep = &quot; - &quot;)
+    p_spatialscore_heatmap &lt;- make_feature_heatmap(
+      spatialscore_by_patient,
+      x_col = &quot;patient_display&quot;,
+      y_col = &quot;feature&quot;,
+      fill_col = &quot;value&quot;,
+      title_text = &quot;Patient-level SpatialScore by T-cell state&quot;
+    ) +
+      ggplot2::labs(fill = &quot;SpatialScore&quot;)
+    show_and_save_plot(
+      p_spatialscore_heatmap,
+      filename = file.path(spatialscore_out_dir, &quot;spatialscore_patient_heatmap.jpg&quot;),
+      width = 10,
+      height = 5
+    )
+  }
+
+  knitr::kable(
+    triplet_definition,
+    row.names = FALSE,
+    caption = &quot;SpatialScore triplet definitions&quot;
+  )</code></pre>
+<table>
+<caption>SpatialScore triplet definitions</caption>
+<colgroup>
+<col width="1%" />
+<col width="26%" />
+<col width="7%" />
+<col width="34%" />
+<col width="29%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">role</th>
+<th align="left">definition</th>
+<th align="right">min_cells_per_core_state</th>
+<th align="left">spatialscore_formula</th>
+<th align="left">low_score_interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">CT1</td>
+<td align="left">CD4-like T-cell states: CD4 helper; Tfh / CXCR5+
+helper</td>
+<td align="right">10</td>
+<td
+align="left">(distance_from_CD4_T_cell_to_nearest_candidate_malignant_B
++ 1) / (distance_from_CD4_T_cell_to_nearest_Treg + 1)</td>
+<td align="left">SpatialScore &lt; 1 means the CD4-like T cell is closer
+to candidate malignant-B cells than to Tregs</td>
+</tr>
+<tr class="even">
+<td align="left">CT2</td>
+<td align="left">Candidate malignant-B calls: Candidate malignant B;
+EBV-positive candidate malignant B</td>
+<td align="right">10</td>
+<td
+align="left">(distance_from_CD4_T_cell_to_nearest_candidate_malignant_B
++ 1) / (distance_from_CD4_T_cell_to_nearest_Treg + 1)</td>
+<td align="left">SpatialScore &lt; 1 means the CD4-like T cell is closer
+to candidate malignant-B cells than to Tregs</td>
+</tr>
+<tr class="odd">
+<td align="left">CT3</td>
+<td align="left">Treg cells</td>
+<td align="right">10</td>
+<td
+align="left">(distance_from_CD4_T_cell_to_nearest_candidate_malignant_B
++ 1) / (distance_from_CD4_T_cell_to_nearest_Treg + 1)</td>
+<td align="left">SpatialScore &lt; 1 means the CD4-like T cell is closer
+to candidate malignant-B cells than to Tregs</td>
+</tr>
+</tbody>
+</table>
+<p><img src="08_spatialscore_files/figure-html/spatialscore_candidate_malignant_b-1.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="08_spatialscore_files/figure-html/spatialscore_candidate_malignant_b-2.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="08_spatialscore_files/figure-html/spatialscore_candidate_malignant_b-3.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="output-summaries" class="section level2" number="2">
+<h2><span class="header-section-number">2</span> Output summaries</h2>
+<table>
+<caption>Median core-level SpatialScore by EBV status and T-cell
+state</caption>
+<thead>
+<tr class="header">
+<th align="left">condition</th>
+<th align="left">feature</th>
+<th align="right">median_core_spatialscore</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">CD4 helper</td>
+<td align="right">0.172</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">CD4 helper</td>
+<td align="right">0.332</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">Tfh / CXCR5+ helper</td>
+<td align="right">0.187</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">Tfh / CXCR5+ helper</td>
+<td align="right">0.335</td>
+</tr>
+</tbody>
+</table>
+<table>
+<caption>Patient-level SpatialScore EBV-status effects</caption>
+<thead>
+<tr class="header">
+<th align="left">feature</th>
+<th align="right">logFC</th>
+<th align="right">AveExpr</th>
+<th align="right">P.Value</th>
+<th align="right">adj.P.Val</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">CD4 helper</td>
+<td align="right">0.0955</td>
+<td align="right">0.3318</td>
+<td align="right">0.3834</td>
+<td align="right">0.5969</td>
+</tr>
+<tr class="even">
+<td align="left">Tfh / CXCR5+ helper</td>
+<td align="right">0.0672</td>
+<td align="right">0.3477</td>
+<td align="right">0.5969</td>
+<td align="right">0.5969</td>
+</tr>
+</tbody>
+</table>
+<table>
+<caption>Skipped core-state SpatialScore tests</caption>
+<colgroup>
+<col width="22%" />
+<col width="62%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">feature</th>
+<th align="left">skip_reason</th>
+<th align="right">n_core_states</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">CD4 helper</td>
+<td align="left">CT1 CD4 helper cells &lt; 10</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">CD4 helper</td>
+<td align="left">CT1 CD4 helper cells &lt; 10; CT3 Treg cells &lt;
+10</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Tfh / CXCR5+ helper</td>
+<td align="left">CT1 Tfh / CXCR5+ helper cells &lt; 10</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Tfh / CXCR5+ helper</td>
+<td align="left">CT1 Tfh / CXCR5+ helper cells &lt; 10; CT3 Treg cells
+&lt; 10</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">CD4 helper</td>
+<td align="left">CT3 Treg cells &lt; 10</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Tfh / CXCR5+ helper</td>
+<td align="left">CT3 Treg cells &lt; 10</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
