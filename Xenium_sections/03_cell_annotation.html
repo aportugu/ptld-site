@@ -11,7 +11,7 @@
 
 <meta name="author" content="Andrew Portuguese" />
 
-<meta name="date" content="2026-06-02" />
+<meta name="date" content="2026-06-03" />
 
 <title>03. Xenium Cell Annotation</title>
 
@@ -252,7 +252,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">03. Xenium Cell Annotation</h1>
 <h4 class="author">Andrew Portuguese</h4>
-<h4 class="date">June 02, 2026</h4>
+<h4 class="date">June 03, 2026</h4>
 
 </div>
 
@@ -3796,9 +3796,113 @@ CellTypist labels and external cluster-level evidence organize cells
 similarly without changing either annotation layer.
 <img src="03_cell_annotation_files/figure-html/marker_vs_enrichr_cluster_umap_comparison-1.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
 </div>
-<div id="enrichr-sanity-check-against-celltypist-annotations"
+<div
+id="harmony-cluster-atlas-summary-with-enrichr-labels-and-inventory-composition"
 class="section level2" number="1.12">
-<h2><span class="header-section-number">1.12</span> Enrichr sanity check
+<h2><span class="header-section-number">1.12</span> Harmony cluster
+atlas summary with Enrichr labels and inventory composition</h2>
+<p>This section summarizes shared PTLD Harmony clusters using
+cluster-level Enrichr labels, top marker-gene expression profiles, and
+per-cluster source composition from the inventory-mapped
+<code>TMA.ID</code>, <code>Biopsy.site</code>, and
+<code>Biopsy.type</code> fields.</p>
+<table>
+<caption>Enrichr suggested label for each Harmony cluster used in this
+section</caption>
+<thead>
+<tr class="header">
+<th align="left">harmony_cluster</th>
+<th align="left">enrichr_suggested_label</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">0</td>
+<td align="left">T Cells</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">B Cells Memory</td>
+</tr>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">Plasma Cells</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">Alveolar Macrophages</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">B Cell Blood Human</td>
+</tr>
+<tr class="even">
+<td align="left">5</td>
+<td align="left">Liver-L2-Proliferating T/NK</td>
+</tr>
+<tr class="odd">
+<td align="left">6</td>
+<td align="left">Plasma Cells</td>
+</tr>
+<tr class="even">
+<td align="left">7</td>
+<td align="left">Fibroblasts</td>
+</tr>
+<tr class="odd">
+<td align="left">8</td>
+<td align="left">B Cells Memory</td>
+</tr>
+<tr class="even">
+<td align="left">9</td>
+<td align="left">Endothelial Cells</td>
+</tr>
+<tr class="odd">
+<td align="left">10</td>
+<td align="left">B Cells</td>
+</tr>
+<tr class="even">
+<td align="left">11</td>
+<td align="left">Exhausted CD8+ T Cell Breast Human</td>
+</tr>
+<tr class="odd">
+<td align="left">12</td>
+<td align="left">Corneal and conjunctival epithelial cells in Eye</td>
+</tr>
+<tr class="even">
+<td align="left">13</td>
+<td align="left">Myeloid cells in Adrenal</td>
+</tr>
+<tr class="odd">
+<td align="left">14</td>
+<td align="left">Antigen presenting cells in Thymus</td>
+</tr>
+<tr class="even">
+<td align="left">15</td>
+<td align="left">Goblet Cells</td>
+</tr>
+<tr class="odd">
+<td align="left">16</td>
+<td align="left">B Cells</td>
+</tr>
+<tr class="even">
+<td align="left">17</td>
+<td align="left">B Cell Undefined Human</td>
+</tr>
+<tr class="odd">
+<td align="left">18</td>
+<td align="left">B Cells Memory</td>
+</tr>
+<tr class="even">
+<td align="left">19</td>
+<td align="left">Mast Cell Stomach Human</td>
+</tr>
+</tbody>
+</table>
+<p><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-1.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-2.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-3.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="enrichr-sanity-check-against-celltypist-annotations"
+class="section level2" number="1.13">
+<h2><span class="header-section-number">1.13</span> Enrichr sanity check
 against CellTypist annotations</h2>
 <p>This section uses the Enrichr cluster labels as a weak, cluster-level
 evidence layer to audit the coverage-filtered CellTypist L2 annotations.
@@ -4722,6 +4826,718 @@ class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
 </tr>
 </tbody>
 </table>
+</div>
+<div id="enrichr-evidence-for-aifi-unassigned-subclusters"
+class="section level2" number="1.14">
+<h2><span class="header-section-number">1.14</span> Enrichr evidence for
+AIFI-unassigned subclusters</h2>
+<p>This review-only section reclusters included PTLD cells whose AIFI
+hierarchical L2 annotation remains <code>Unassigned</code>. The
+subcluster labels and Enrichr results are used only as annotation
+evidence for manual review and do not replace
+<code>cell_type_refined</code>, <code>cell_type_highres</code>, or
+downstream state annotations.</p>
+<pre class="r"><code>  aifi_unassigned_out_dir &lt;- file.path(output_root, &quot;Enrichr_unassigned_aifi_subclusters&quot;)
+  dir.create(aifi_unassigned_out_dir, showWarnings = FALSE, recursive = TRUE)
+
+  aifi_unassigned_min_cells &lt;- 50
+  aifi_unassigned_cluster_resolution &lt;- cluster_resolution
+  aifi_unassigned_top_n_markers &lt;- if (exists(&quot;enrichr_top_n_markers&quot;, inherits = FALSE)) enrichr_top_n_markers else 50
+  aifi_unassigned_min_marker_genes &lt;- if (exists(&quot;enrichr_min_marker_genes&quot;, inherits = FALSE)) enrichr_min_marker_genes else 5
+  aifi_unassigned_libraries &lt;- if (exists(&quot;enrichr_libraries&quot;, inherits = FALSE)) {
+    enrichr_libraries
+  } else {
+    c(
+      &quot;CellMarker_2024&quot;,
+      &quot;Azimuth_2023&quot;,
+      &quot;PanglaoDB_Augmented_2021&quot;,
+      &quot;Descartes_Cell_Types_and_Tissue_2021&quot;,
+      &quot;Tabula_Sapiens&quot;
+    )
+  }
+  aifi_unassigned_stop_on_enrichr_failure &lt;- FALSE
+  aifi_unassigned_retry_version &lt;- &quot;review_v1&quot;
+
+  empty_aifi_unassigned_metadata &lt;- data.frame(
+    cell = character(),
+    sample_key = character(),
+    cell_id = character(),
+    condition = character(),
+    patient_id = character(),
+    core_id = character(),
+    harmony_cluster = character(),
+    cell_type_refined = character(),
+    cell_type_highres = character(),
+    aifi_unassigned_subcluster = character(),
+    aifi_unassigned_umap_1 = numeric(),
+    aifi_unassigned_umap_2 = numeric(),
+    stringsAsFactors = FALSE
+  )
+  empty_aifi_unassigned_markers &lt;- data.frame(
+    cluster = character(),
+    gene = character(),
+    p_val = numeric(),
+    avg_log2FC = numeric(),
+    pct.1 = numeric(),
+    pct.2 = numeric(),
+    p_val_adj = numeric(),
+    stringsAsFactors = FALSE
+  )
+  empty_aifi_unassigned_enrichr &lt;- data.frame(
+    cluster = character(),
+    n_submitted_genes = integer(),
+    submitted_genes = character(),
+    user_list_id = character(),
+    short_id = character(),
+    api_error = character(),
+    library = character(),
+    rank = integer(),
+    term = character(),
+    p_value = numeric(),
+    z_score = numeric(),
+    combined_score = numeric(),
+    overlapping_genes = character(),
+    adjusted_p_value = numeric(),
+    old_p_value = numeric(),
+    old_adjusted_p_value = numeric(),
+    stringsAsFactors = FALSE
+  )
+  empty_aifi_unassigned_review &lt;- data.frame(
+    cluster = character(),
+    n_cells = integer(),
+    n_marker_genes = integer(),
+    top_marker_genes = character(),
+    suggested_label = character(),
+    confidence = character(),
+    best_library = character(),
+    best_adjusted_p_value = numeric(),
+    best_p_value = numeric(),
+    best_overlap_n = integer(),
+    top_enrichr_terms = character(),
+    stringsAsFactors = FALSE
+  )
+
+  make_aifi_unassigned_status &lt;- function(status, detail) {
+    data.frame(status = status, detail = detail, stringsAsFactors = FALSE)
+  }
+
+  aifi_unassigned_cache &lt;- make_cache_file(
+    &quot;aifi_unassigned_subcluster_enrichr&quot;,
+    family = &quot;annotations&quot;,
+    segmentation_source,
+    segmentation_cache_tag,
+    celltypist_cache_tag,
+    paste0(&quot;res&quot;, aifi_unassigned_cluster_resolution),
+    paste0(&quot;dims&quot;, max(preprocessing_dims)),
+    paste0(&quot;top&quot;, aifi_unassigned_top_n_markers),
+    paste0(&quot;min&quot;, aifi_unassigned_min_marker_genes),
+    paste0(&quot;libs&quot;, length(aifi_unassigned_libraries)),
+    paste0(&quot;mincells&quot;, aifi_unassigned_min_cells),
+    aifi_unassigned_retry_version
+  )
+
+  aifi_unassigned_bundle &lt;- get_cached_rds(
+    aifi_unassigned_cache,
+    function() benchmark_stage(&quot;aifi_unassigned_subcluster_enrichr&quot;, {
+      required_fields &lt;- c(&quot;core_type&quot;, &quot;core_included&quot;, &quot;cell_type_refined&quot;)
+      missing_fields &lt;- setdiff(required_fields, colnames(xenium_combined@meta.data))
+      if (length(missing_fields) &gt; 0) {
+        return(list(
+          status = make_aifi_unassigned_status(
+            &quot;Skipped&quot;,
+            paste(&quot;Missing required metadata fields:&quot;, paste(missing_fields, collapse = &quot;, &quot;))
+          ),
+          cell_metadata = empty_aifi_unassigned_metadata,
+          cluster_markers = empty_aifi_unassigned_markers,
+          marker_summary = data.frame(cluster = character(), n_cells = integer(), n_marker_genes = integer(), top_marker_genes = character(), stringsAsFactors = FALSE),
+          enrichr_results = empty_aifi_unassigned_enrichr,
+          enrichr_top_hits = empty_aifi_unassigned_enrichr,
+          enrichr_review = empty_aifi_unassigned_review,
+          plot = NULL
+        ))
+      }
+
+      include_main_filter &lt;- if (&quot;include_main_ebv_analysis&quot; %in% colnames(xenium_combined@meta.data)) {
+        xenium_combined$include_main_ebv_analysis %in% TRUE
+      } else {
+        rep(TRUE, length(Cells(xenium_combined)))
+      }
+      unassigned_cells &lt;- Cells(xenium_combined)[
+        xenium_combined$core_type == &quot;PTLD&quot; &amp;
+          xenium_combined$core_included %in% TRUE &amp;
+          include_main_filter &amp;
+          as.character(xenium_combined$cell_type_refined) == &quot;Unassigned&quot;
+      ]
+
+      if (length(unassigned_cells) == 0) {
+        return(list(
+          status = make_aifi_unassigned_status(&quot;Skipped&quot;, &quot;No included PTLD cells had cell_type_refined == &#39;Unassigned&#39;.&quot;),
+          cell_metadata = empty_aifi_unassigned_metadata,
+          cluster_markers = empty_aifi_unassigned_markers,
+          marker_summary = data.frame(cluster = character(), n_cells = integer(), n_marker_genes = integer(), top_marker_genes = character(), stringsAsFactors = FALSE),
+          enrichr_results = empty_aifi_unassigned_enrichr,
+          enrichr_top_hits = empty_aifi_unassigned_enrichr,
+          enrichr_review = empty_aifi_unassigned_review,
+          plot = NULL
+        ))
+      }
+
+      if (length(unassigned_cells) &lt; aifi_unassigned_min_cells) {
+        cell_metadata &lt;- data.frame(
+          cell = unassigned_cells,
+          sample_key = as.character(xenium_combined$sample_key[unassigned_cells]),
+          cell_id = as.character(xenium_combined$cell_id[unassigned_cells]),
+          condition = as.character(xenium_combined$condition[unassigned_cells]),
+          patient_id = if (&quot;patient_id&quot; %in% colnames(xenium_combined@meta.data)) as.character(xenium_combined$patient_id[unassigned_cells]) else NA_character_,
+          core_id = as.character(xenium_combined$core_id[unassigned_cells]),
+          harmony_cluster = if (&quot;harmony_cluster&quot; %in% colnames(xenium_combined@meta.data)) as.character(xenium_combined$harmony_cluster[unassigned_cells]) else NA_character_,
+          cell_type_refined = as.character(xenium_combined$cell_type_refined[unassigned_cells]),
+          cell_type_highres = if (&quot;cell_type_highres&quot; %in% colnames(xenium_combined@meta.data)) as.character(xenium_combined$cell_type_highres[unassigned_cells]) else NA_character_,
+          aifi_unassigned_subcluster = NA_character_,
+          aifi_unassigned_umap_1 = NA_real_,
+          aifi_unassigned_umap_2 = NA_real_,
+          stringsAsFactors = FALSE
+        )
+        return(list(
+          status = make_aifi_unassigned_status(
+            &quot;Skipped&quot;,
+            paste0(&quot;Only &quot;, length(unassigned_cells), &quot; AIFI-unassigned cells were available; minimum is &quot;, aifi_unassigned_min_cells, &quot;.&quot;)
+          ),
+          cell_metadata = cell_metadata,
+          cluster_markers = empty_aifi_unassigned_markers,
+          marker_summary = data.frame(cluster = character(), n_cells = integer(), n_marker_genes = integer(), top_marker_genes = character(), stringsAsFactors = FALSE),
+          enrichr_results = empty_aifi_unassigned_enrichr,
+          enrichr_top_hits = empty_aifi_unassigned_enrichr,
+          enrichr_review = empty_aifi_unassigned_review,
+          plot = NULL
+        ))
+      }
+
+      unassigned_obj &lt;- subset(xenium_combined, cells = unassigned_cells)
+      if (&quot;RNA&quot; %in% names(unassigned_obj@assays)) {
+        DefaultAssay(unassigned_obj) &lt;- &quot;RNA&quot;
+      }
+      unassigned_obj &lt;- ensure_joined_layers(unassigned_obj)
+      unassigned_obj &lt;- NormalizeData(
+        unassigned_obj,
+        scale.factor = stats::median(unassigned_obj$nCount_RNA),
+        verbose = FALSE
+      )
+      unassigned_obj &lt;- FindVariableFeatures(
+        unassigned_obj,
+        nfeatures = min(2000, nrow(unassigned_obj)),
+        verbose = FALSE
+      )
+      variable_features &lt;- VariableFeatures(unassigned_obj)
+      if (length(variable_features) == 0) {
+        return(list(
+          status = make_aifi_unassigned_status(&quot;Skipped&quot;, &quot;No variable features were found for AIFI-unassigned cells.&quot;),
+          cell_metadata = empty_aifi_unassigned_metadata,
+          cluster_markers = empty_aifi_unassigned_markers,
+          marker_summary = data.frame(cluster = character(), n_cells = integer(), n_marker_genes = integer(), top_marker_genes = character(), stringsAsFactors = FALSE),
+          enrichr_results = empty_aifi_unassigned_enrichr,
+          enrichr_top_hits = empty_aifi_unassigned_enrichr,
+          enrichr_review = empty_aifi_unassigned_review,
+          plot = NULL
+        ))
+      }
+      unassigned_obj &lt;- ScaleData(unassigned_obj, features = variable_features, verbose = FALSE)
+      unassigned_obj &lt;- RunPCA(unassigned_obj, features = variable_features, verbose = FALSE)
+      pca_n &lt;- ncol(Embeddings(unassigned_obj, &quot;pca&quot;))
+      dims_use &lt;- preprocessing_dims[preprocessing_dims &lt;= pca_n]
+      if (length(dims_use) == 0) {
+        return(list(
+          status = make_aifi_unassigned_status(&quot;Skipped&quot;, &quot;No valid PCA dimensions were available for AIFI-unassigned reclustering.&quot;),
+          cell_metadata = empty_aifi_unassigned_metadata,
+          cluster_markers = empty_aifi_unassigned_markers,
+          marker_summary = data.frame(cluster = character(), n_cells = integer(), n_marker_genes = integer(), top_marker_genes = character(), stringsAsFactors = FALSE),
+          enrichr_results = empty_aifi_unassigned_enrichr,
+          enrichr_top_hits = empty_aifi_unassigned_enrichr,
+          enrichr_review = empty_aifi_unassigned_review,
+          plot = NULL
+        ))
+      }
+      unassigned_obj &lt;- RunUMAP(
+        unassigned_obj,
+        reduction = &quot;pca&quot;,
+        dims = dims_use,
+        reduction.name = &quot;aifi_unassigned_umap&quot;,
+        reduction.key = &quot;aifiUnassignedUMAP_&quot;,
+        verbose = FALSE
+      )
+      unassigned_obj &lt;- FindNeighbors(
+        unassigned_obj,
+        reduction = &quot;pca&quot;,
+        dims = dims_use,
+        verbose = FALSE
+      )
+      unassigned_obj &lt;- FindClusters(
+        unassigned_obj,
+        resolution = aifi_unassigned_cluster_resolution,
+        cluster.name = &quot;aifi_unassigned_subcluster&quot;,
+        verbose = FALSE
+      )
+      unassigned_obj$aifi_unassigned_subcluster &lt;- as.character(unassigned_obj$aifi_unassigned_subcluster)
+
+      umap_embeddings &lt;- Embeddings(unassigned_obj, &quot;aifi_unassigned_umap&quot;)
+      cell_metadata &lt;- data.frame(
+        cell = Cells(unassigned_obj),
+        sample_key = as.character(unassigned_obj$sample_key),
+        cell_id = as.character(unassigned_obj$cell_id),
+        condition = as.character(unassigned_obj$condition),
+        patient_id = if (&quot;patient_id&quot; %in% colnames(unassigned_obj@meta.data)) as.character(unassigned_obj$patient_id) else NA_character_,
+        core_id = as.character(unassigned_obj$core_id),
+        harmony_cluster = if (&quot;harmony_cluster&quot; %in% colnames(unassigned_obj@meta.data)) as.character(unassigned_obj$harmony_cluster) else NA_character_,
+        cell_type_refined = as.character(unassigned_obj$cell_type_refined),
+        cell_type_highres = if (&quot;cell_type_highres&quot; %in% colnames(unassigned_obj@meta.data)) as.character(unassigned_obj$cell_type_highres) else NA_character_,
+        aifi_unassigned_subcluster = as.character(unassigned_obj$aifi_unassigned_subcluster),
+        aifi_unassigned_umap_1 = umap_embeddings[, 1],
+        aifi_unassigned_umap_2 = umap_embeddings[, 2],
+        stringsAsFactors = FALSE
+      )
+
+      p_subcluster &lt;- DimPlot(
+        unassigned_obj,
+        reduction = &quot;aifi_unassigned_umap&quot;,
+        group.by = &quot;aifi_unassigned_subcluster&quot;,
+        raster = TRUE,
+        label = TRUE,
+        repel = TRUE,
+        label.size = 4
+      ) +
+        ggtitle(&quot;AIFI-unassigned subclusters&quot;) +
+        theme(plot.title = element_text(hjust = 0.5))
+
+      p_condition &lt;- DimPlot(
+        unassigned_obj,
+        reduction = &quot;aifi_unassigned_umap&quot;,
+        group.by = &quot;condition&quot;,
+        raster = TRUE
+      ) +
+        ggtitle(&quot;AIFI-unassigned cells by condition&quot;) +
+        theme(plot.title = element_text(hjust = 0.5))
+
+      unassigned_plot &lt;- if (requireNamespace(&quot;patchwork&quot;, quietly = TRUE) &amp;&amp;
+          length(unique(stats::na.omit(as.character(unassigned_obj$condition)))) &gt; 1) {
+        p_subcluster + p_condition + patchwork::plot_layout(widths = c(1, 1))
+      } else {
+        p_subcluster
+      }
+
+      cluster_counts &lt;- as.data.frame(table(cluster = as.character(unassigned_obj$aifi_unassigned_subcluster)), stringsAsFactors = FALSE)
+      names(cluster_counts) &lt;- c(&quot;cluster&quot;, &quot;n_cells&quot;)
+      cluster_counts &lt;- cluster_counts[cluster_counts$n_cells &gt; 0, , drop = FALSE]
+      cluster_counts$cluster &lt;- as.character(cluster_counts$cluster)
+
+      if (nrow(cluster_counts) &lt; 2) {
+        marker_summary &lt;- data.frame(
+          cluster = cluster_counts$cluster,
+          n_cells = cluster_counts$n_cells,
+          n_marker_genes = 0L,
+          top_marker_genes = &quot;&quot;,
+          stringsAsFactors = FALSE
+        )
+        return(list(
+          status = make_aifi_unassigned_status(&quot;Partial&quot;, &quot;AIFI-unassigned UMAP was generated, but fewer than two subclusters were found; Enrichr was skipped.&quot;),
+          cell_metadata = cell_metadata,
+          cluster_markers = empty_aifi_unassigned_markers,
+          marker_summary = marker_summary,
+          enrichr_results = empty_aifi_unassigned_enrichr,
+          enrichr_top_hits = empty_aifi_unassigned_enrichr,
+          enrichr_review = summarize_enrichr_cluster_hits(empty_aifi_unassigned_enrichr, marker_summary),
+          plot = unassigned_plot
+        ))
+      }
+
+      Idents(unassigned_obj) &lt;- &quot;aifi_unassigned_subcluster&quot;
+      cluster_markers &lt;- tryCatch(
+        run_find_all_markers_safe(
+          unassigned_obj,
+          only.pos = TRUE,
+          min.pct = 0.05,
+          logfc.threshold = 0.25,
+          verbose = FALSE
+        ),
+        error = function(e) {
+          attr(empty_aifi_unassigned_markers, &quot;marker_error&quot;) &lt;- conditionMessage(e)
+          empty_aifi_unassigned_markers
+        }
+      )
+      marker_error &lt;- attr(cluster_markers, &quot;marker_error&quot;)
+      if (nrow(cluster_markers) &gt; 0 &amp;&amp; !&quot;gene&quot; %in% colnames(cluster_markers)) {
+        cluster_markers$gene &lt;- rownames(cluster_markers)
+      }
+      if (nrow(cluster_markers) &gt; 0 &amp;&amp; &quot;cluster&quot; %in% colnames(cluster_markers)) {
+        cluster_markers$cluster &lt;- as.character(cluster_markers$cluster)
+      }
+
+      fc_col &lt;- intersect(c(&quot;avg_log2FC&quot;, &quot;avg_logFC&quot;), colnames(cluster_markers))[1]
+      sort_cols_available &lt;- c(&quot;p_val_adj&quot;, fc_col, &quot;p_val&quot;)
+      sort_cols_available &lt;- sort_cols_available[!is.na(sort_cols_available) &amp; sort_cols_available %in% colnames(cluster_markers)]
+      marker_by_cluster &lt;- if (nrow(cluster_markers) &gt; 0 &amp;&amp; &quot;cluster&quot; %in% colnames(cluster_markers)) {
+        split(cluster_markers, cluster_markers$cluster)
+      } else {
+        list()
+      }
+      marker_summary &lt;- do.call(rbind, lapply(cluster_counts$cluster, function(cluster_id) {
+        markers &lt;- marker_by_cluster[[cluster_id]]
+        if (is.null(markers) || nrow(markers) == 0) {
+          top_genes &lt;- character()
+        } else {
+          if (all(c(&quot;p_val_adj&quot;, fc_col, &quot;p_val&quot;) %in% colnames(markers)) &amp;&amp; !is.na(fc_col)) {
+            markers &lt;- markers[order(markers$p_val_adj, -markers[[fc_col]], markers$p_val), , drop = FALSE]
+          } else if (length(sort_cols_available) &gt; 0) {
+            markers &lt;- markers[do.call(order, markers[sort_cols_available]), , drop = FALSE]
+          }
+          top_genes &lt;- head(unique(toupper(as.character(markers$gene))), aifi_unassigned_top_n_markers)
+        }
+        data.frame(
+          cluster = cluster_id,
+          n_cells = cluster_counts$n_cells[match(cluster_id, cluster_counts$cluster)],
+          n_marker_genes = length(top_genes),
+          top_marker_genes = paste(top_genes, collapse = &quot;;&quot;),
+          stringsAsFactors = FALSE
+        )
+      }))
+
+      if (!is.null(marker_error) || nrow(cluster_markers) == 0) {
+        detail &lt;- if (!is.null(marker_error)) {
+          paste(&quot;Marker detection failed; Enrichr was skipped:&quot;, marker_error)
+        } else {
+          &quot;No positive marker genes were detected for AIFI-unassigned subclusters; Enrichr was skipped.&quot;
+        }
+        return(list(
+          status = make_aifi_unassigned_status(&quot;Partial&quot;, detail),
+          cell_metadata = cell_metadata,
+          cluster_markers = cluster_markers,
+          marker_summary = marker_summary,
+          enrichr_results = empty_aifi_unassigned_enrichr,
+          enrichr_top_hits = empty_aifi_unassigned_enrichr,
+          enrichr_review = summarize_enrichr_cluster_hits(empty_aifi_unassigned_enrichr, marker_summary),
+          plot = unassigned_plot
+        ))
+      }
+
+      enrichr_rows &lt;- lapply(seq_len(nrow(marker_summary)), function(i) {
+        cluster_id &lt;- marker_summary$cluster[[i]]
+        submitted_genes &lt;- unlist(strsplit(marker_summary$top_marker_genes[[i]], &quot;;&quot;, fixed = TRUE), use.names = FALSE)
+        submitted_genes &lt;- submitted_genes[nzchar(submitted_genes)]
+
+        if (length(submitted_genes) &lt; aifi_unassigned_min_marker_genes) {
+          out &lt;- empty_aifi_unassigned_enrichr[0, , drop = FALSE]
+          out[1, ] &lt;- NA
+          out$cluster &lt;- cluster_id
+          out$n_submitted_genes &lt;- length(submitted_genes)
+          out$submitted_genes &lt;- paste(submitted_genes, collapse = &quot;;&quot;)
+          out$api_error &lt;- &quot;Skipped: fewer marker genes than aifi_unassigned_min_marker_genes.&quot;
+          return(out)
+        }
+
+        enrichr_res &lt;- call_enrichr(
+          genes = submitted_genes,
+          libraries = aifi_unassigned_libraries,
+          description = paste(&quot;Xenium PTLD AIFI-unassigned subcluster&quot;, cluster_id),
+          stop_on_failure = aifi_unassigned_stop_on_enrichr_failure,
+          max_tries = 6,
+          retry_base_sec = 3,
+          inter_request_delay_sec = 0.75
+        )
+
+        if (nrow(enrichr_res$results) == 0) {
+          out &lt;- empty_aifi_unassigned_enrichr[0, , drop = FALSE]
+          out[1, ] &lt;- NA
+          out$cluster &lt;- cluster_id
+          out$n_submitted_genes &lt;- length(submitted_genes)
+          out$submitted_genes &lt;- paste(submitted_genes, collapse = &quot;;&quot;)
+          out$user_list_id &lt;- enrichr_res$user_list_id
+          out$short_id &lt;- enrichr_res$short_id
+          out$api_error &lt;- enrichr_res$error
+          return(out)
+        }
+
+        cbind(
+          data.frame(
+            cluster = cluster_id,
+            n_submitted_genes = length(submitted_genes),
+            submitted_genes = paste(submitted_genes, collapse = &quot;;&quot;),
+            user_list_id = enrichr_res$user_list_id,
+            short_id = enrichr_res$short_id,
+            api_error = enrichr_res$error,
+            stringsAsFactors = FALSE
+          ),
+          enrichr_res$results
+        )
+      })
+
+      enrichr_results &lt;- do.call(rbind, enrichr_rows)
+      if (is.null(enrichr_results)) enrichr_results &lt;- empty_aifi_unassigned_enrichr
+      valid_enrichr_results &lt;- enrichr_results[
+        !is.na(enrichr_results$term) &amp;
+          nzchar(as.character(enrichr_results$term)) &amp;
+          is.na(enrichr_results$api_error),
+        ,
+        drop = FALSE
+      ]
+      enrichr_top_hits &lt;- if (nrow(valid_enrichr_results) &gt; 0) {
+        do.call(rbind, lapply(split(valid_enrichr_results, valid_enrichr_results$cluster), function(x) {
+          x &lt;- x[order(x$adjusted_p_value, -x$combined_score, x$p_value), , drop = FALSE]
+          utils::head(x, 10)
+        }))
+      } else {
+        valid_enrichr_results
+      }
+      enrichr_review &lt;- summarize_enrichr_cluster_hits(valid_enrichr_results, marker_summary)
+
+      list(
+        status = make_aifi_unassigned_status(&quot;Complete&quot;, paste0(&quot;Analyzed &quot;, length(unassigned_cells), &quot; AIFI-unassigned cells across &quot;, nrow(cluster_counts), &quot; subclusters.&quot;)),
+        cell_metadata = cell_metadata,
+        cluster_markers = cluster_markers,
+        marker_summary = marker_summary,
+        enrichr_results = enrichr_results,
+        enrichr_top_hits = enrichr_top_hits,
+        enrichr_review = enrichr_review,
+        plot = unassigned_plot
+      )
+    }),
+    refresh = refresh_annotations,
+    metadata = list(stage = &quot;aifi_unassigned_subcluster_enrichr&quot;)
+  )
+
+  write.csv(
+    aifi_unassigned_bundle$cell_metadata,
+    file = file.path(aifi_unassigned_out_dir, &quot;aifi_unassigned_subcluster_cell_metadata.csv&quot;),
+    row.names = FALSE
+  )
+  write.csv(
+    aifi_unassigned_bundle$cluster_markers,
+    file = file.path(aifi_unassigned_out_dir, &quot;aifi_unassigned_subcluster_markers.csv&quot;),
+    row.names = FALSE
+  )
+  write.csv(
+    aifi_unassigned_bundle$enrichr_results,
+    file = file.path(aifi_unassigned_out_dir, &quot;aifi_unassigned_subcluster_enrichr_results.csv&quot;),
+    row.names = FALSE
+  )
+  write.csv(
+    aifi_unassigned_bundle$enrichr_top_hits,
+    file = file.path(aifi_unassigned_out_dir, &quot;aifi_unassigned_subcluster_enrichr_top_hits.csv&quot;),
+    row.names = FALSE
+  )
+  write.csv(
+    aifi_unassigned_bundle$enrichr_review,
+    file = file.path(aifi_unassigned_out_dir, &quot;aifi_unassigned_subcluster_annotation_review.csv&quot;),
+    row.names = FALSE
+  )
+
+  aifi_unassigned_umap_file &lt;- file.path(aifi_unassigned_out_dir, &quot;aifi_unassigned_subcluster_umap.jpg&quot;)
+  if (!is.null(aifi_unassigned_bundle$plot)) {
+    if (should_generate_file(aifi_unassigned_umap_file, refresh = refresh_reports)) {
+      ggsave(
+        filename = aifi_unassigned_umap_file,
+        plot = aifi_unassigned_bundle$plot,
+        width = 14,
+        height = 7,
+        units = &quot;in&quot;,
+        dpi = 300
+      )
+    }
+    print(aifi_unassigned_bundle$plot)
+  }
+
+  aifi_unassigned_display &lt;- if (nrow(aifi_unassigned_bundle$enrichr_review) &gt; 0) {
+    out &lt;- aifi_unassigned_bundle$enrichr_review[, c(
+      &quot;cluster&quot;,
+      &quot;n_cells&quot;,
+      &quot;n_marker_genes&quot;,
+      &quot;suggested_label&quot;,
+      &quot;confidence&quot;,
+      &quot;best_library&quot;,
+      &quot;best_overlap_n&quot;
+    ), drop = FALSE]
+    out$cluster_sort &lt;- suppressWarnings(as.integer(out$cluster))
+    out &lt;- out[order(out$cluster_sort, out$cluster), setdiff(colnames(out), &quot;cluster_sort&quot;), drop = FALSE]
+    out
+  } else {
+    aifi_unassigned_bundle$status
+  }
+
+  knitr::kable(
+    aifi_unassigned_display,
+    row.names = FALSE,
+    caption = &quot;Review-only Enrichr suggestions for AIFI-unassigned subclusters&quot;
+  )</code></pre>
+<table>
+<caption>Review-only Enrichr suggestions for AIFI-unassigned
+subclusters</caption>
+<colgroup>
+<col width="5%" />
+<col width="5%" />
+<col width="9%" />
+<col width="37%" />
+<col width="7%" />
+<col width="24%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="right">n_cells</th>
+<th align="right">n_marker_genes</th>
+<th align="left">suggested_label</th>
+<th align="left">confidence</th>
+<th align="left">best_library</th>
+<th align="right">best_overlap_n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">0</td>
+<td align="right">3384</td>
+<td align="right">50</td>
+<td align="left">Endothelial Cells</td>
+<td align="left">High</td>
+<td align="left">PanglaoDB_Augmented_2021</td>
+<td align="right">16</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="right">2266</td>
+<td align="right">43</td>
+<td align="left">Myeloid cells in Intestine</td>
+<td align="left">High</td>
+<td align="left">Descartes_Cell_Types_and_Tissue_2021</td>
+<td align="right">17</td>
+</tr>
+<tr class="odd">
+<td align="left">2</td>
+<td align="right">2052</td>
+<td align="right">50</td>
+<td align="left">Kupffer Cells</td>
+<td align="left">High</td>
+<td align="left">PanglaoDB_Augmented_2021</td>
+<td align="right">27</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="right">1560</td>
+<td align="right">50</td>
+<td align="left">Lymphoid cells in Lung</td>
+<td align="left">High</td>
+<td align="left">Descartes_Cell_Types_and_Tissue_2021</td>
+<td align="right">33</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="right">1290</td>
+<td align="right">50</td>
+<td align="left">Fibroblasts</td>
+<td align="left">High</td>
+<td align="left">PanglaoDB_Augmented_2021</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">5</td>
+<td align="right">460</td>
+<td align="right">50</td>
+<td align="left">Kupffer Cells</td>
+<td align="left">High</td>
+<td align="left">PanglaoDB_Augmented_2021</td>
+<td align="right">24</td>
+</tr>
+<tr class="odd">
+<td align="left">6</td>
+<td align="right">442</td>
+<td align="right">50</td>
+<td align="left">Goblet Cells</td>
+<td align="left">High</td>
+<td align="left">PanglaoDB_Augmented_2021</td>
+<td align="right">10</td>
+</tr>
+<tr class="even">
+<td align="left">7</td>
+<td align="right">382</td>
+<td align="right">50</td>
+<td align="left">Dendritic Cells</td>
+<td align="left">High</td>
+<td align="left">PanglaoDB_Augmented_2021</td>
+<td align="right">24</td>
+</tr>
+<tr class="odd">
+<td align="left">8</td>
+<td align="right">292</td>
+<td align="right">26</td>
+<td align="left">Mast Cell Kidney Human</td>
+<td align="left">High</td>
+<td align="left">CellMarker_2024</td>
+<td align="right">11</td>
+</tr>
+<tr class="even">
+<td align="left">9</td>
+<td align="right">273</td>
+<td align="right">50</td>
+<td align="left">B Cells</td>
+<td align="left">High</td>
+<td align="left">PanglaoDB_Augmented_2021</td>
+<td align="right">25</td>
+</tr>
+<tr class="odd">
+<td align="left">10</td>
+<td align="right">271</td>
+<td align="right">50</td>
+<td align="left">Endothelial Cell Ovary Human</td>
+<td align="left">High</td>
+<td align="left">CellMarker_2024</td>
+<td align="right">8</td>
+</tr>
+<tr class="even">
+<td align="left">11</td>
+<td align="right">208</td>
+<td align="right">36</td>
+<td align="left">Neutrophils</td>
+<td align="left">High</td>
+<td align="left">PanglaoDB_Augmented_2021</td>
+<td align="right">16</td>
+</tr>
+<tr class="odd">
+<td align="left">12</td>
+<td align="right">182</td>
+<td align="right">50</td>
+<td align="left">Neural Progenitor Cell Embryonic Prefrontal Cortex
+Human</td>
+<td align="left">High</td>
+<td align="left">CellMarker_2024</td>
+<td align="right">9</td>
+</tr>
+<tr class="even">
+<td align="left">13</td>
+<td align="right">155</td>
+<td align="right">50</td>
+<td align="left">Microglia in Cerebellum</td>
+<td align="left">High</td>
+<td align="left">Descartes_Cell_Types_and_Tissue_2021</td>
+<td align="right">28</td>
+</tr>
+<tr class="odd">
+<td align="left">14</td>
+<td align="right">124</td>
+<td align="right">50</td>
+<td align="left">NK Cells</td>
+<td align="left">High</td>
+<td align="left">PanglaoDB_Augmented_2021</td>
+<td align="right">31</td>
+</tr>
+<tr class="even">
+<td align="left">15</td>
+<td align="right">22</td>
+<td align="right">50</td>
+<td align="left">T Helper2 (Th2) Cell Undefined Human</td>
+<td align="left">High</td>
+<td align="left">CellMarker_2024</td>
+<td align="right">7</td>
+</tr>
+</tbody>
+</table>
+<p><img src="03_cell_annotation_files/figure-html/enrichr_aifi_unassigned_subclusters-1.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
 </div>
 </div>
 
