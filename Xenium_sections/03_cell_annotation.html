@@ -11,7 +11,7 @@
 
 <meta name="author" content="Andrew Portuguese" />
 
-<meta name="date" content="2026-06-03" />
+<meta name="date" content="2026-06-05" />
 
 <title>03. Xenium Cell Annotation</title>
 
@@ -252,7 +252,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">03. Xenium Cell Annotation</h1>
 <h4 class="author">Andrew Portuguese</h4>
-<h4 class="date">June 03, 2026</h4>
+<h4 class="date">June 05, 2026</h4>
 
 </div>
 
@@ -419,7 +419,8 @@ Spatial/Interfaces</a><a class="xenium-navbar__link" href="06_differential_expre
 DE</a><a class="xenium-navbar__link" href="07_patient_characteristics.html">07
 Patient
 Characteristics</a><a class="xenium-navbar__link" href="08_spatialscore.html">08
-SpatialScore</a>
+SpatialScore</a><a class="xenium-navbar__link" href="09_malignant_b_morphology_review.html">09
+Morphology Review</a>
 </div>
 </div>
 </div>
@@ -1953,55 +1954,300 @@ the rendered page stays smaller.</p>
 number="1.7">
 <h2><span class="header-section-number">1.7</span> CellTypist label
 finalization</h2>
-<p>The CellTypist coverage-filtered labels are already the primary
-downstream annotations. This chunk keeps the secondary lineage marker
-definitions available for later state scoring and cluster QC, but it no
-longer reassigns an <code>Other</code> compartment by marker
-thresholds.</p>
-<pre class="r"><code>  lineage_markers &lt;- list(
+<p>The CellTypist coverage-filtered labels are the first-pass
+annotations. Before T/NK state scoring and malignant-B candidate
+calling, canonical non-immune marker programs are used to correct
+high-confidence stromal and vascular cells that were assigned immune
+labels by CellTypist. The original CellTypist labels are preserved as
+provenance columns.</p>
+<pre class="r"><code>  canonical_marker_override_tag &lt;- &quot;canonical_marker_override_v2_no_epithelial&quot;
+  annotation_label_cache_tag &lt;- paste(celltypist_cache_tag, canonical_marker_override_tag, sep = &quot;_&quot;)
+  canonical_override_out_dir &lt;- file.path(output_root, &quot;Canonical_marker_overrides&quot;)
+  dir.create(canonical_override_out_dir, showWarnings = FALSE, recursive = TRUE)
+
+  lineage_markers &lt;- list(
     B = c(&quot;MS4A1&quot;, &quot;CD79A&quot;, &quot;CD79B&quot;),
     `Plasma cell` = c(&quot;SDC1&quot;, &quot;MZB1&quot;, &quot;XBP1&quot;, &quot;JCHAIN&quot;, &quot;PRDM1&quot;, &quot;TNFRSF17&quot;, &quot;CD38&quot;),
     T = c(&quot;CD3D&quot;, &quot;CD3E&quot;, &quot;TRBC1&quot;),
     NK = c(&quot;NKG7&quot;, &quot;GNLY&quot;, &quot;PRF1&quot;),
     Myeloid = c(&quot;LYZ&quot;, &quot;LST1&quot;, &quot;CTSS&quot;),
     DC = c(&quot;FCER1A&quot;, &quot;CLEC10A&quot;, &quot;ITGAX&quot;),
-    Endothelial = c(&quot;PECAM1&quot;, &quot;VWF&quot;, &quot;KDR&quot;),
-    Fibroblast = c(&quot;COL1A1&quot;, &quot;COL1A2&quot;, &quot;DCN&quot;, &quot;LUM&quot;)
+    Endothelial = c(&quot;PECAM1&quot;, &quot;CLDN5&quot;, &quot;FLT1&quot;),
+    Fibroblast = c(&quot;COL1A1&quot;, &quot;DCN&quot;, &quot;LUM&quot;, &quot;PDGFRA&quot;),
+    `Pericyte / smooth muscle` = c(&quot;RGS5&quot;, &quot;ACTA2&quot;)
   )
-  other_summary_table &lt;- data.frame(
-    condition = character(),
-    core_id = character(),
-    inferred_type = character(),
-    count = integer(),
-    stringsAsFactors = FALSE
+
+  canonical_override_marker_sets &lt;- list(
+    `Endothelial cell` = c(&quot;PECAM1&quot;, &quot;CLDN5&quot;, &quot;FLT1&quot;),
+    `Pericyte / smooth muscle` = c(&quot;RGS5&quot;, &quot;ACTA2&quot;),
+    Fibroblast = c(&quot;COL1A1&quot;, &quot;DCN&quot;, &quot;LUM&quot;, &quot;PDGFRA&quot;)
   )
-  other_summary_display &lt;- data.frame(
-    status = &quot;Skipped&quot;,
-    reason = &quot;Primary labels come from coverage-filtered CellTypist AIFI predictions.&quot;,
-    stringsAsFactors = FALSE
+  canonical_override_min_detected &lt;- c(
+    `Endothelial cell` = 2,
+    `Pericyte / smooth muscle` = 2,
+    Fibroblast = 2
   )
+  canonical_override_broad_labels &lt;- c(
+    `Endothelial cell` = &quot;Stromal / vascular&quot;,
+    `Pericyte / smooth muscle` = &quot;Stromal / vascular&quot;,
+    Fibroblast = &quot;Stromal / vascular&quot;
+  )
+  canonical_immune_guard_markers &lt;- c(&quot;PTPRC&quot;, &quot;MS4A1&quot;, &quot;CD79A&quot;, &quot;CD79B&quot;, &quot;CD3D&quot;, &quot;CD3E&quot;, &quot;LYZ&quot;)
+  canonical_immune_label_pattern &lt;- &quot;B cell|Plasma|T cell|Treg|Gamma-delta|MAIT|NK cell|ILC|^gdT$|^CD8aa$|monocyte|Myeloid|DC&quot;
+
+  zscore_with_reference &lt;- function(x, reference) {
+    x &lt;- as.numeric(x)
+    reference &lt;- as.logical(reference)
+    ref_values &lt;- x[reference &amp; is.finite(x)]
+    ref_sd &lt;- stats::sd(ref_values, na.rm = TRUE)
+    if (length(ref_values) == 0 || is.na(ref_sd) || ref_sd == 0) {
+      return(rep(0, length(x)))
+    }
+    (x - mean(ref_values, na.rm = TRUE)) / ref_sd
+  }
+
+  safe_celltype_table &lt;- function(...) {
+    tab &lt;- as.data.frame(table(..., useNA = &quot;ifany&quot;), stringsAsFactors = FALSE)
+    names(tab)[ncol(tab)] &lt;- &quot;n_cells&quot;
+    tab
+  }
+
+  is_b_lineage_label &lt;- function(refined, broad = NULL) {
+    refined &lt;- as.character(refined)
+    if (is.null(broad)) broad &lt;- rep(NA_character_, length(refined))
+    broad &lt;- as.character(broad)
+    grepl(&quot;\\bB cell\\b|Plasma&quot;, refined, ignore.case = TRUE) | broad %in% c(&quot;B cell&quot;)
+  }
+
+  canonical_override_cell_rows &lt;- list()
+  canonical_override_core_rows &lt;- list()
+  canonical_override_crosswalk_rows &lt;- list()
+  canonical_override_b_lineage_rows &lt;- list()
+
+  for (cond in names(xenium_by_condition)) {
+    obj &lt;- xenium_by_condition[[cond]]
+    obj$cell_type_broad_celltypist_original &lt;- as.character(obj$cell_type_broad)
+    obj$cell_type_refined_celltypist_original &lt;- as.character(obj$cell_type_refined)
+    obj$cell_type_highres_celltypist_original &lt;- as.character(obj$cell_type_highres)
+    obj$cell_type_broad &lt;- as.character(obj$cell_type_broad)
+    obj$cell_type_refined &lt;- as.character(obj$cell_type_refined)
+    obj$cell_type_highres &lt;- as.character(obj$cell_type_highres)
+    obj$canonical_marker_override_label &lt;- &quot;No override&quot;
+    obj$canonical_marker_override_reason &lt;- &quot;No canonical non-immune marker override&quot;
+
+    expr &lt;- GetAssayData(obj, assay = &quot;RNA&quot;, layer = &quot;data&quot;)
+    counts &lt;- GetAssayData(obj, assay = &quot;RNA&quot;, layer = &quot;counts&quot;)
+    included_ptld &lt;- obj$core_type == &quot;PTLD&quot; &amp;
+      obj$core_included &amp;
+      !is.na(obj$include_main_ebv_analysis) &amp;
+      as.logical(obj$include_main_ebv_analysis)
+
+    immune_score &lt;- score_gene_set(expr, canonical_immune_guard_markers)
+    immune_z &lt;- zscore_with_reference(immune_score, included_ptld)
+    immune_detected_genes &lt;- intersect(canonical_immune_guard_markers, rownames(counts))
+    immune_detected &lt;- if (length(immune_detected_genes) &gt; 0) {
+      Matrix::colSums(counts[immune_detected_genes, , drop = FALSE] &gt; 0)
+    } else {
+      rep(0, ncol(counts))
+    }
+    obj$canonical_marker_immune_guard_score &lt;- immune_score
+    obj$canonical_marker_immune_guard_z &lt;- immune_z
+    obj$canonical_marker_immune_guard_n_detected &lt;- immune_detected
+
+    class_scores &lt;- matrix(NA_real_, nrow = ncol(expr), ncol = length(canonical_override_marker_sets))
+    class_detected &lt;- matrix(0, nrow = ncol(expr), ncol = length(canonical_override_marker_sets))
+    colnames(class_scores) &lt;- names(canonical_override_marker_sets)
+    colnames(class_detected) &lt;- names(canonical_override_marker_sets)
+
+    for (label in names(canonical_override_marker_sets)) {
+      marker_genes &lt;- intersect(canonical_override_marker_sets[[label]], rownames(expr))
+      score &lt;- score_gene_set(expr, marker_genes)
+      detected &lt;- if (length(marker_genes) &gt; 0) {
+        Matrix::colSums(counts[marker_genes, , drop = FALSE] &gt; 0)
+      } else {
+        rep(0, ncol(counts))
+      }
+      score_z &lt;- zscore_with_reference(score, included_ptld)
+      score_slug &lt;- make_output_slug(label)
+      obj[[paste0(&quot;canonical_marker_&quot;, score_slug, &quot;_score&quot;)]] &lt;- score
+      obj[[paste0(&quot;canonical_marker_&quot;, score_slug, &quot;_z&quot;)]] &lt;- score_z
+      obj[[paste0(&quot;canonical_marker_&quot;, score_slug, &quot;_n_detected&quot;)]] &lt;- detected
+      class_scores[, label] &lt;- score_z
+      class_detected[, label] &lt;- detected
+    }
+
+    original_refined &lt;- as.character(obj$cell_type_refined)
+    original_broad &lt;- as.character(obj$cell_type_broad)
+    immune_like_label &lt;- grepl(canonical_immune_label_pattern, original_refined, ignore.case = TRUE) |
+      original_broad %in% c(&quot;B cell&quot;, &quot;T cell&quot;, &quot;NK cell&quot;, &quot;Myeloid&quot;, &quot;DC&quot;)
+    b_lineage_before &lt;- is_b_lineage_label(original_refined, original_broad)
+
+    pass_matrix &lt;- matrix(FALSE, nrow = ncol(expr), ncol = length(canonical_override_marker_sets))
+    colnames(pass_matrix) &lt;- names(canonical_override_marker_sets)
+    for (label in names(canonical_override_marker_sets)) {
+      pass_matrix[, label] &lt;- included_ptld &amp;
+        class_detected[, label] &gt;= canonical_override_min_detected[[label]] &amp;
+        is.finite(class_scores[, label]) &amp;
+        class_scores[, label] &gt;= 1 &amp;
+        (!immune_like_label | class_scores[, label] &gt;= (immune_z + 0.25))
+    }
+
+    best_scores &lt;- class_scores
+    best_scores[!pass_matrix] &lt;- -Inf
+    best_class_index &lt;- max.col(best_scores, ties.method = &quot;first&quot;)
+    has_override &lt;- apply(pass_matrix, 1, any)
+    override_label &lt;- rep(NA_character_, ncol(expr))
+    override_label[has_override] &lt;- colnames(pass_matrix)[best_class_index[has_override]]
+    override_cells &lt;- which(has_override)
+
+    if (length(override_cells) &gt; 0) {
+      obj$canonical_marker_override_label[override_cells] &lt;- override_label[override_cells]
+      obj$canonical_marker_override_reason[override_cells] &lt;- vapply(
+        override_cells,
+        function(i) {
+          label &lt;- override_label[[i]]
+          paste0(
+            label,
+            &quot;: &quot;, class_detected[i, label], &quot;/&quot;, length(intersect(canonical_override_marker_sets[[label]], rownames(counts))),
+            &quot; markers detected; marker z=&quot;, sprintf(&quot;%.2f&quot;, class_scores[i, label]),
+            &quot;; immune z=&quot;, sprintf(&quot;%.2f&quot;, immune_z[[i]])
+          )
+        },
+        character(1)
+      )
+      obj$cell_type_refined[override_cells] &lt;- override_label[override_cells]
+      obj$cell_type_highres[override_cells] &lt;- override_label[override_cells]
+      obj$cell_type_broad[override_cells] &lt;- unname(canonical_override_broad_labels[override_label[override_cells]])
+    }
+
+    corrected_refined &lt;- as.character(obj$cell_type_refined)
+    corrected_broad &lt;- as.character(obj$cell_type_broad)
+    b_lineage_after &lt;- is_b_lineage_label(corrected_refined, corrected_broad)
+
+    canonical_override_crosswalk_rows[[cond]] &lt;- cbind(
+      condition = cond,
+      safe_celltype_table(
+        original_refined = original_refined[included_ptld],
+        corrected_refined = corrected_refined[included_ptld]
+      )
+    )
+    canonical_override_b_lineage_rows[[cond]] &lt;- data.frame(
+      condition = cond,
+      b_lineage_before = sum(b_lineage_before &amp; included_ptld, na.rm = TRUE),
+      b_lineage_after = sum(b_lineage_after &amp; included_ptld, na.rm = TRUE),
+      b_lineage_removed_by_override = sum(b_lineage_before &amp; !b_lineage_after &amp; included_ptld, na.rm = TRUE),
+      override_cells = sum(has_override &amp; included_ptld, na.rm = TRUE),
+      stringsAsFactors = FALSE
+    )
+
+    meta &lt;- obj@meta.data
+    override_meta &lt;- meta[included_ptld &amp; has_override, , drop = FALSE]
+    if (nrow(override_meta) &gt; 0) {
+      canonical_override_cell_rows[[cond]] &lt;- data.frame(
+        condition = cond,
+        cell_id = rownames(override_meta),
+        core_id = override_meta$core_id,
+        patient_id = override_meta$patient_id,
+        original_cell_type_refined = override_meta$cell_type_refined_celltypist_original,
+        corrected_cell_type_refined = override_meta$cell_type_refined,
+        canonical_marker_override_label = override_meta$canonical_marker_override_label,
+        canonical_marker_override_reason = override_meta$canonical_marker_override_reason,
+        stringsAsFactors = FALSE
+      )
+      canonical_override_core_rows[[cond]] &lt;- cbind(
+        condition = cond,
+        safe_celltype_table(
+          core_id = override_meta$core_id,
+          canonical_marker_override_label = override_meta$canonical_marker_override_label
+        )
+      )
+    }
+
+    xenium_by_condition[[cond]] &lt;- obj
+  }
+
+  xenium_pos &lt;- xenium_by_condition[[&quot;EBV POS&quot;]]
+  xenium_neg &lt;- xenium_by_condition[[&quot;EBV NEG&quot;]]
+
+  canonical_override_cell_table &lt;- if (length(canonical_override_cell_rows) &gt; 0) {
+    do.call(rbind, canonical_override_cell_rows)
+  } else {
+    data.frame()
+  }
+  other_summary_table &lt;- if (length(canonical_override_core_rows) &gt; 0) {
+    do.call(rbind, canonical_override_core_rows)
+  } else {
+    data.frame(
+      condition = character(),
+      core_id = character(),
+      canonical_marker_override_label = character(),
+      n_cells = integer(),
+      stringsAsFactors = FALSE
+    )
+  }
+  canonical_override_crosswalk_table &lt;- do.call(rbind, canonical_override_crosswalk_rows)
+  canonical_override_b_lineage_summary &lt;- do.call(rbind, canonical_override_b_lineage_rows)
+
+  write.csv(
+    canonical_override_cell_table,
+    file = file.path(canonical_override_out_dir, &quot;canonical_marker_override_cells.csv&quot;),
+    row.names = FALSE
+  )
+  write.csv(
+    other_summary_table,
+    file = file.path(canonical_override_out_dir, &quot;canonical_marker_override_by_core.csv&quot;),
+    row.names = FALSE
+  )
+  write.csv(
+    canonical_override_crosswalk_table,
+    file = file.path(canonical_override_out_dir, &quot;canonical_marker_override_label_crosswalk.csv&quot;),
+    row.names = FALSE
+  )
+  write.csv(
+    canonical_override_b_lineage_summary,
+    file = file.path(canonical_override_out_dir, &quot;canonical_marker_override_b_lineage_summary.csv&quot;),
+    row.names = FALSE
+  )
+
+  other_summary_display &lt;- canonical_override_b_lineage_summary
   knitr::kable(
     other_summary_display,
     row.names = FALSE,
-    caption = &quot;Marker-based Other-cell reassignment&quot;
+    caption = &quot;Canonical marker overrides applied before malignant-B candidate calling&quot;
   )</code></pre>
 <table>
-<caption>Marker-based Other-cell reassignment</caption>
+<caption>Canonical marker overrides applied before malignant-B candidate
+calling</caption>
 <colgroup>
-<col width="10%" />
-<col width="90%" />
+<col width="11%" />
+<col width="19%" />
+<col width="18%" />
+<col width="34%" />
+<col width="17%" />
 </colgroup>
 <thead>
 <tr class="header">
-<th align="left">status</th>
-<th align="left">reason</th>
+<th align="left">condition</th>
+<th align="right">b_lineage_before</th>
+<th align="right">b_lineage_after</th>
+<th align="right">b_lineage_removed_by_override</th>
+<th align="right">override_cells</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">Skipped</td>
-<td align="left">Primary labels come from coverage-filtered CellTypist
-AIFI predictions.</td>
+<td align="left">EBV POS</td>
+<td align="right">164554</td>
+<td align="right">154443</td>
+<td align="right">10111</td>
+<td align="right">32437</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="right">110396</td>
+<td align="right">101035</td>
+<td align="right">9361</td>
+<td align="right">22985</td>
 </tr>
 </tbody>
 </table>
@@ -2014,8 +2260,10 @@ malignant B states across included PTLD cores (EBV_POS + EBV_NEG)</h2>
 <p>This section adds two biologically focused annotation layers on top
 of the first-pass refined labels. T-lineage cells are reassigned into
 functional T/NK states using panel-supported marker programs, and
-malignant B cells are partitioned into stable malignant-state categories
-for replicate-aware downstream comparison.</p>
+B-lineage cells are scored for candidate malignant-B evidence. The
+rendered tables below are compact report summaries; full patient-,
+core-, program-, and cell-level review outputs are still written as CSV
+files for downstream analysis.</p>
 <pre class="r"><code>  state_out_dir &lt;- file.path(output_root, &quot;PTLD_state_annotations&quot;)
   dir.create(state_out_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -2122,8 +2370,8 @@ for replicate-aware downstream comparison.</p>
     family = &quot;annotations&quot;,
     paste0(&quot;dims&quot;, max(preprocessing_dims)),
     paste0(&quot;res&quot;, cluster_resolution),
-    celltypist_cache_tag,
-    &quot;candidate_malignant_b_patient_status_v1&quot;
+    annotation_label_cache_tag,
+    &quot;candidate_malignant_b_patient_status_v2_state_tables&quot;
   )
   state_annotation_res &lt;- get_cached_rds(
     state_annotation_cache,
@@ -2195,7 +2443,7 @@ for replicate-aware downstream comparison.</p>
             t_assign[helper_cells] &lt;- &quot;CD4 helper&quot;
           }
 
-          obj$tcell_state[t_cells] &lt;- factor(t_assign[t_cells], levels = tcell_state_levels)
+          obj$tcell_state[t_cells] &lt;- as.character(t_assign[t_cells])
         }
 
         malignant_cells &lt;- Cells(obj)[obj$core_type == &quot;PTLD&quot; &amp; obj$core_included &amp; is_b_lineage_cell(obj)]
@@ -2216,11 +2464,11 @@ for replicate-aware downstream comparison.</p>
 
           malignant_low_confidence &lt;- apply(malignant_score_mat, 1, max) &lt; 0.10
           malignant_assign[malignant_low_confidence] &lt;- &quot;Other malignant B&quot;
-          obj$malignant_b_state[malignant_cells] &lt;- factor(
-            malignant_assign[malignant_cells],
-            levels = malignant_b_state_levels
-          )
+          obj$malignant_b_state[malignant_cells] &lt;- as.character(malignant_assign[malignant_cells])
         }
+
+        obj$tcell_state &lt;- factor(obj$tcell_state, levels = tcell_state_levels)
+        obj$malignant_b_state &lt;- factor(obj$malignant_b_state, levels = malignant_b_state_levels)
 
         evaluable_cells &lt;- Cells(obj)[
           obj$core_type == &quot;PTLD&quot; &amp;
@@ -2367,6 +2615,9 @@ for replicate-aware downstream comparison.</p>
       xenium_combined_state$cell_type_broad &lt;- state_meta$cell_type_broad[combined_state_match]
       xenium_combined_state$cell_type_refined &lt;- state_meta$cell_type_refined[combined_state_match]
       xenium_combined_state$cell_type_highres &lt;- state_meta$cell_type_highres[combined_state_match]
+      xenium_combined_state$patient_id &lt;- state_meta$patient_id[combined_state_match]
+      xenium_combined_state$condition &lt;- state_meta$condition[combined_state_match]
+      xenium_combined_state$analysis_ebv_group &lt;- state_meta$analysis_ebv_group[combined_state_match]
       xenium_combined_state$tcell_state &lt;- factor(
         state_meta$tcell_state[combined_state_match],
         levels = tcell_state_levels
@@ -2534,8 +2785,28 @@ for replicate-aware downstream comparison.</p>
   write.csv(candidate_malignant_b_review_flags, file = file.path(state_out_dir, &quot;candidate_malignant_b_review_flags.csv&quot;), row.names = FALSE)
 
   if (nrow(candidate_malignant_b_summary) &gt; 0) {
+    candidate_malignant_b_report &lt;- candidate_malignant_b_summary[
+      order(candidate_malignant_b_summary$patient_ebv_status, candidate_malignant_b_summary$candidate_malignant_b_call),
+      ,
+      drop = FALSE
+    ]
+    candidate_malignant_b_report$percent_within_ebv_status &lt;- round(
+      100 * candidate_malignant_b_report$fraction_within_patient_ebv_status,
+      1
+    )
+    candidate_malignant_b_report &lt;- candidate_malignant_b_report[
+      ,
+      c(
+        &quot;patient_ebv_status&quot;,
+        &quot;candidate_malignant_b_call&quot;,
+        &quot;n_cells&quot;,
+        &quot;status_total_cells&quot;,
+        &quot;percent_within_ebv_status&quot;
+      ),
+      drop = FALSE
+    ]
     knitr::kable(
-      candidate_malignant_b_summary,
+      candidate_malignant_b_report,
       row.names = FALSE,
       caption = &quot;Candidate malignant-B calls by patient-level EBV status&quot;
     )
@@ -2544,11 +2815,11 @@ for replicate-aware downstream comparison.</p>
 <caption>Candidate malignant-B calls by patient-level EBV
 status</caption>
 <colgroup>
-<col width="15%" />
-<col width="34%" />
+<col width="16%" />
+<col width="37%" />
 <col width="6%" />
-<col width="15%" />
-<col width="28%" />
+<col width="16%" />
+<col width="22%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -2556,503 +2827,395 @@ status</caption>
 <th align="left">candidate_malignant_b_call</th>
 <th align="right">n_cells</th>
 <th align="right">status_total_cells</th>
-<th align="right">fraction_within_patient_ebv_status</th>
+<th align="right">percent_within_ebv_status</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">B-lineage, insufficient malignant evidence</td>
+<td align="right">6010</td>
+<td align="right">138132</td>
+<td align="right">4.3</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">Candidate malignant B</td>
+<td align="right">74355</td>
+<td align="right">138132</td>
+<td align="right">53.8</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">Not B lineage</td>
+<td align="right">57767</td>
+<td align="right">138132</td>
+<td align="right">41.8</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">B-lineage, insufficient malignant evidence</td>
+<td align="right">7689</td>
+<td align="right">318284</td>
+<td align="right">2.4</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">Candidate malignant B</td>
+<td align="right">19715</td>
+<td align="right">318284</td>
+<td align="right">6.2</td>
+</tr>
+<tr class="even">
 <td align="left">EBV POS</td>
 <td align="left">EBV-positive candidate malignant B</td>
-<td align="right">156938</td>
+<td align="right">147709</td>
 <td align="right">318284</td>
-<td align="right">0.4931</td>
-</tr>
-<tr class="even">
-<td align="left">EBV POS</td>
-<td align="left">Candidate malignant B</td>
-<td align="right">20568</td>
-<td align="right">318284</td>
-<td align="right">0.0646</td>
+<td align="right">46.4</td>
 </tr>
 <tr class="odd">
-<td align="left">EBV POS</td>
-<td align="left">B-lineage, insufficient malignant evidence</td>
-<td align="right">8898</td>
-<td align="right">318284</td>
-<td align="right">0.0280</td>
-</tr>
-<tr class="even">
 <td align="left">EBV POS</td>
 <td align="left">Not B lineage</td>
-<td align="right">131880</td>
+<td align="right">143171</td>
 <td align="right">318284</td>
-<td align="right">0.4143</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">Candidate malignant B</td>
-<td align="right">79553</td>
-<td align="right">138132</td>
-<td align="right">0.5759</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">B-lineage, insufficient malignant evidence</td>
-<td align="right">8993</td>
-<td align="right">138132</td>
-<td align="right">0.0651</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">Not B lineage</td>
-<td align="right">49586</td>
-<td align="right">138132</td>
-<td align="right">0.3590</td>
+<td align="right">45.0</td>
 </tr>
 </tbody>
 </table>
-<pre class="r"><code>  if (nrow(candidate_malignant_b_review_flags) &gt; 0) {
+<pre class="r"><code>  if (nrow(candidate_malignant_b_program_score_summary) &gt; 0) {
+    candidate_malignant_b_program_report &lt;- candidate_malignant_b_program_score_summary[
+      order(
+        candidate_malignant_b_program_score_summary$patient_ebv_status,
+        candidate_malignant_b_program_score_summary$candidate_malignant_b_call,
+        -candidate_malignant_b_program_score_summary$n_cells
+      ),
+      ,
+      drop = FALSE
+    ]
+    candidate_malignant_b_program_report &lt;- candidate_malignant_b_program_report[
+      ,
+      c(
+        &quot;patient_ebv_status&quot;,
+        &quot;candidate_malignant_b_call&quot;,
+        &quot;candidate_malignant_b_program&quot;,
+        &quot;n_cells&quot;,
+        &quot;mean_program_score&quot;,
+        &quot;mean_ebv_score&quot;,
+        &quot;mean_ebv_detected_gene_count&quot;
+      ),
+      drop = FALSE
+    ]
     knitr::kable(
-      utils::head(candidate_malignant_b_review_flags, 20),
+      candidate_malignant_b_program_report,
       row.names = FALSE,
-      caption = &quot;Candidate malignant-B review flags&quot;
+      caption = &quot;Dominant malignant-B program evidence by EBV status and candidate call&quot;
     )
   }</code></pre>
 <table>
-<caption>Candidate malignant-B review flags</caption>
+<caption>Dominant malignant-B program evidence by EBV status and
+candidate call</caption>
 <colgroup>
-<col width="2%" />
-<col width="2%" />
-<col width="2%" />
-<col width="2%" />
+<col width="11%" />
+<col width="25%" />
+<col width="20%" />
 <col width="4%" />
-<col width="2%" />
-<col width="4%" />
-<col width="4%" />
-<col width="10%" />
+<col width="11%" />
 <col width="8%" />
-<col width="7%" />
-<col width="15%" />
-<col width="8%" />
-<col width="9%" />
-<col width="8%" />
-<col width="6%" />
+<col width="17%" />
 </colgroup>
 <thead>
 <tr class="header">
-<th align="left">condition</th>
-<th align="left">sample_key</th>
-<th align="left">cell_id</th>
-<th align="left">patient_id</th>
 <th align="left">patient_ebv_status</th>
-<th align="left">core_id</th>
-<th align="left">cell_type_refined</th>
-<th align="left">cell_type_highres</th>
 <th align="left">candidate_malignant_b_call</th>
-<th align="left">candidate_malignant_b_confidence</th>
 <th align="left">candidate_malignant_b_program</th>
-<th align="left">candidate_malignant_b_rule</th>
-<th align="left">candidate_malignant_b_review_flag</th>
-<th align="right">candidate_malignant_b_program_score</th>
-<th align="right">candidate_malignant_b_ebv_score</th>
-<th align="right">ebv_detected_gene_count</th>
+<th align="right">n_cells</th>
+<th align="right">mean_program_score</th>
+<th align="right">mean_ebv_score</th>
+<th align="right">mean_ebv_detected_gene_count</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">hokefjcb-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">BCL2-high survival</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.1587053</td>
-<td align="right">0.0561139</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">hooclbab-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">Moderate</td>
-<td align="left">GC-like / BCL6-high</td>
-<td align="left">Patient EBV NEG B lineage with moderate malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">0.9566896</td>
-<td align="right">0.0529134</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fmnekjbm-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">Plasma-like / PRDM1-XBP1-MZB1</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.7680851</td>
-<td align="right">0.0920257</td>
-<td align="right">2</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">hoopcfnb-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">Plasma-like / PRDM1-XBP1-MZB1</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">2.8602189</td>
-<td align="right">0.1002879</td>
-<td align="right">2</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">hoocmdbo-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">Proliferative</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.7385041</td>
-<td align="right">0.0831512</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fncpdaba-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">Proliferative</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.7917002</td>
-<td align="right">0.0467705</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fncolnon-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">Proliferative</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">2.2796028</td>
-<td align="right">0.0200176</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fmnempdb-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">BCL2-high survival</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.5386107</td>
-<td align="right">0.0566040</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fmneachl-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">Proliferative</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.0203133</td>
-<td align="right">0.0494599</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fnblnepj-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">GC-like / BCL6-high</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.1994790</td>
-<td align="right">0.0383164</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fnbhlfoh-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">Plasma-like / PRDM1-XBP1-MZB1</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">2.7505477</td>
-<td align="right">0.0236927</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fncdihad-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">Proliferative</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">2.2372379</td>
-<td align="right">0.0438305</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fnccnjpe-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
 <td align="left">B-lineage, insufficient malignant evidence</td>
-<td align="left">Low</td>
+<td align="left">GC-like / BCL6-high</td>
+<td align="right">1324</td>
+<td align="right">0.1413</td>
+<td align="right">0.0088</td>
+<td align="right">0.0801</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">B-lineage, insufficient malignant evidence</td>
+<td align="left">BCL2-high survival</td>
+<td align="right">1271</td>
+<td align="right">-0.4657</td>
+<td align="right">0.0111</td>
+<td align="right">0.0747</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">B-lineage, insufficient malignant evidence</td>
+<td align="left">Antigen-presentation / HLA-II-high</td>
+<td align="right">1255</td>
+<td align="right">0.0343</td>
+<td align="right">0.0104</td>
+<td align="right">0.0948</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">B-lineage, insufficient malignant evidence</td>
+<td align="left">Plasma-like / PRDM1-XBP1-MZB1</td>
+<td align="right">1233</td>
+<td align="right">0.2280</td>
+<td align="right">0.0103</td>
+<td align="right">0.0973</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">B-lineage, insufficient malignant evidence</td>
 <td align="left">Proliferative</td>
-<td align="left">B-lineage only; malignant program below threshold</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">0.4237674</td>
-<td align="right">0.0406830</td>
-<td align="right">1</td>
+<td align="right">927</td>
+<td align="right">0.2383</td>
+<td align="right">0.0128</td>
+<td align="right">0.1122</td>
 </tr>
 <tr class="even">
 <td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fnbpmbam-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
 <td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">GC-like / BCL6-high</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.2936261</td>
-<td align="right">0.0263604</td>
-<td align="right">1</td>
+<td align="left">Proliferative</td>
+<td align="right">23511</td>
+<td align="right">1.8107</td>
+<td align="right">0.0064</td>
+<td align="right">0.1204</td>
 </tr>
 <tr class="odd">
 <td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fnekocdc-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
 <td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">GC-like / BCL6-high</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.3615282</td>
-<td align="right">0.0873541</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fnemccpm-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">BCL2-high survival</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.9374191</td>
-<td align="right">0.0200176</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">hpdckpoe-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">BCL2-high survival</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.8339100</td>
-<td align="right">0.3038454</td>
-<td align="right">2</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">fnempfjn-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
-<td align="left">BCL2-high survival</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">1.3020701</td>
-<td align="right">0.0317614</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">hpcekeli-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">High</td>
 <td align="left">Plasma-like / PRDM1-XBP1-MZB1</td>
-<td align="left">Patient EBV NEG B lineage with high malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">2.0526246</td>
-<td align="right">0.0377030</td>
-<td align="right">1</td>
+<td align="right">16832</td>
+<td align="right">2.2645</td>
+<td align="right">0.0062</td>
+<td align="right">0.1033</td>
 </tr>
 <tr class="even">
 <td align="left">EBV NEG</td>
-<td align="left">EBV_NEG</td>
-<td align="left">hpcfdgmb-1</td>
-<td align="left">PTLD_P004</td>
-<td align="left">EBV NEG</td>
-<td align="left">R4_C2</td>
-<td align="left">B cell</td>
-<td align="left">B cell</td>
 <td align="left">Candidate malignant B</td>
-<td align="left">Moderate</td>
+<td align="left">BCL2-high survival</td>
+<td align="right">13971</td>
+<td align="right">1.9836</td>
+<td align="right">0.0106</td>
+<td align="right">0.1881</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">Candidate malignant B</td>
+<td align="left">GC-like / BCL6-high</td>
+<td align="right">12409</td>
+<td align="right">1.2723</td>
+<td align="right">0.0064</td>
+<td align="right">0.1200</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">Candidate malignant B</td>
+<td align="left">Antigen-presentation / HLA-II-high</td>
+<td align="right">7632</td>
+<td align="right">1.3426</td>
+<td align="right">0.0065</td>
+<td align="right">0.1135</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">B-lineage, insufficient malignant evidence</td>
+<td align="left">GC-like / BCL6-high</td>
+<td align="right">2959</td>
+<td align="right">0.6003</td>
+<td align="right">0.0000</td>
+<td align="right">0.0000</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">B-lineage, insufficient malignant evidence</td>
+<td align="left">Antigen-presentation / HLA-II-high</td>
+<td align="right">1414</td>
+<td align="right">0.4403</td>
+<td align="right">0.0000</td>
+<td align="right">0.0000</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">B-lineage, insufficient malignant evidence</td>
+<td align="left">BCL2-high survival</td>
+<td align="right">1313</td>
+<td align="right">0.0696</td>
+<td align="right">0.0000</td>
+<td align="right">0.0000</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">B-lineage, insufficient malignant evidence</td>
 <td align="left">Plasma-like / PRDM1-XBP1-MZB1</td>
-<td align="left">Patient EBV NEG B lineage with moderate malignant-B
-program</td>
-<td align="left">EBV signal discordant/review</td>
-<td align="right">0.9535687</td>
-<td align="right">0.0666817</td>
-<td align="right">1</td>
+<td align="right">1310</td>
+<td align="right">0.4472</td>
+<td align="right">0.0000</td>
+<td align="right">0.0000</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">B-lineage, insufficient malignant evidence</td>
+<td align="left">Proliferative</td>
+<td align="right">693</td>
+<td align="right">0.4921</td>
+<td align="right">0.0000</td>
+<td align="right">0.0000</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">Candidate malignant B</td>
+<td align="left">GC-like / BCL6-high</td>
+<td align="right">7554</td>
+<td align="right">1.5413</td>
+<td align="right">0.0000</td>
+<td align="right">0.0000</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">Candidate malignant B</td>
+<td align="left">BCL2-high survival</td>
+<td align="right">4276</td>
+<td align="right">2.0967</td>
+<td align="right">0.0000</td>
+<td align="right">0.0000</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">Candidate malignant B</td>
+<td align="left">Antigen-presentation / HLA-II-high</td>
+<td align="right">3336</td>
+<td align="right">1.6497</td>
+<td align="right">0.0000</td>
+<td align="right">0.0000</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">Candidate malignant B</td>
+<td align="left">Plasma-like / PRDM1-XBP1-MZB1</td>
+<td align="right">3107</td>
+<td align="right">2.4307</td>
+<td align="right">0.0000</td>
+<td align="right">0.0000</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">Candidate malignant B</td>
+<td align="left">Proliferative</td>
+<td align="right">1442</td>
+<td align="right">1.7481</td>
+<td align="right">0.0000</td>
+<td align="right">0.0000</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">EBV-positive candidate malignant B</td>
+<td align="left">Plasma-like / PRDM1-XBP1-MZB1</td>
+<td align="right">48649</td>
+<td align="right">1.4911</td>
+<td align="right">0.4760</td>
+<td align="right">2.0965</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">EBV-positive candidate malignant B</td>
+<td align="left">Proliferative</td>
+<td align="right">41137</td>
+<td align="right">1.9367</td>
+<td align="right">0.6488</td>
+<td align="right">5.5523</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">EBV-positive candidate malignant B</td>
+<td align="left">GC-like / BCL6-high</td>
+<td align="right">20352</td>
+<td align="right">1.1997</td>
+<td align="right">0.4614</td>
+<td align="right">2.7961</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">EBV-positive candidate malignant B</td>
+<td align="left">BCL2-high survival</td>
+<td align="right">20092</td>
+<td align="right">1.0649</td>
+<td align="right">0.5538</td>
+<td align="right">2.8814</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">EBV-positive candidate malignant B</td>
+<td align="left">Antigen-presentation / HLA-II-high</td>
+<td align="right">17479</td>
+<td align="right">1.1529</td>
+<td align="right">0.4179</td>
+<td align="right">2.0145</td>
 </tr>
 </tbody>
 </table>
-<pre class="r"><code>  knitr::kable(
-    state_assignment_summary,
-    row.names = FALSE,
-    caption = &quot;T/NK and B-cell program/state assignments by condition&quot;
-  )</code></pre>
-<table>
-<caption>T/NK and B-cell program/state assignments by
+<pre class="r"><code>  state_assignment_report &lt;- state_assignment_summary[
+    state_assignment_summary$compartment %in% c(&quot;T/NK&quot;, &quot;Malignant B&quot;) &amp;
+      state_assignment_summary$n_cells &gt; 0,
+    ,
+    drop = FALSE
+  ]
+  if (nrow(state_assignment_report) &gt; 0) {
+    state_totals &lt;- aggregate(
+      n_cells ~ condition + compartment,
+      data = state_assignment_report,
+      FUN = sum
+    )
+    names(state_totals)[names(state_totals) == &quot;n_cells&quot;] &lt;- &quot;compartment_total_cells&quot;
+    state_assignment_report &lt;- merge(
+      state_assignment_report,
+      state_totals,
+      by = c(&quot;condition&quot;, &quot;compartment&quot;),
+      all.x = TRUE,
+      sort = FALSE
+    )
+    state_assignment_report$percent_within_compartment &lt;- round(
+      100 * state_assignment_report$n_cells / state_assignment_report$compartment_total_cells,
+      1
+    )
+    state_assignment_report &lt;- state_assignment_report[
+      order(state_assignment_report$condition, state_assignment_report$compartment, -state_assignment_report$n_cells),
+      c(&quot;condition&quot;, &quot;compartment&quot;, &quot;state&quot;, &quot;n_cells&quot;, &quot;compartment_total_cells&quot;, &quot;percent_within_compartment&quot;),
+      drop = FALSE
+    ]
+    knitr::kable(
+      state_assignment_report,
+      row.names = FALSE,
+      caption = &quot;Nonzero T/NK and malignant-B state assignments by condition&quot;
+    )
+  } else {
+    knitr::kable(
+      data.frame(
+        status = &quot;No nonzero T/NK or malignant-B state assignments were available after filtering.&quot;,
+        stringsAsFactors = FALSE
+      ),
+      row.names = FALSE,
+      caption = &quot;T/NK and malignant-B state assignment availability&quot;
+    )
+  }</code></pre>
+<table style="width:100%;">
+<caption>Nonzero T/NK and malignant-B state assignments by
 condition</caption>
 <colgroup>
-<col width="12%" />
-<col width="26%" />
-<col width="51%" />
-<col width="9%" />
+<col width="8%" />
+<col width="10%" />
+<col width="30%" />
+<col width="6%" />
+<col width="20%" />
+<col width="23%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -3060,224 +3223,368 @@ condition</caption>
 <th align="left">compartment</th>
 <th align="left">state</th>
 <th align="right">n_cells</th>
+<th align="right">compartment_total_cells</th>
+<th align="right">percent_within_compartment</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">EBV POS</td>
-<td align="left">T/NK</td>
-<td align="left">CD8 cytotoxic</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">EBV POS</td>
-<td align="left">T/NK</td>
-<td align="left">CD8 exhausted</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV POS</td>
-<td align="left">T/NK</td>
-<td align="left">Treg</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">EBV POS</td>
-<td align="left">T/NK</td>
-<td align="left">Tfh / CXCR5+ helper</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV POS</td>
-<td align="left">T/NK</td>
-<td align="left">CD4 helper</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">EBV POS</td>
-<td align="left">T/NK</td>
-<td align="left">NK</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV POS</td>
-<td align="left">T/NK</td>
-<td align="left">Unassigned T/NK</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">EBV POS</td>
+<td align="left">EBV NEG</td>
 <td align="left">Malignant B</td>
 <td align="left">Proliferative</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV POS</td>
-<td align="left">Malignant B</td>
-<td align="left">GC-like / BCL6-high</td>
-<td align="right">0</td>
+<td align="right">23210</td>
+<td align="right">101035</td>
+<td align="right">23.0</td>
 </tr>
 <tr class="even">
-<td align="left">EBV POS</td>
-<td align="left">Malignant B</td>
-<td align="left">BCL2-high survival</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV POS</td>
-<td align="left">Malignant B</td>
-<td align="left">Plasma-like / PRDM1-XBP1-MZB1</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">EBV POS</td>
-<td align="left">Malignant B</td>
-<td align="left">Antigen-presentation / HLA-II-high</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV POS</td>
+<td align="left">EBV NEG</td>
 <td align="left">Malignant B</td>
 <td align="left">Other malignant B</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">EBV POS</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">EBV-positive candidate malignant B</td>
-<td align="right">155632</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV POS</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">Candidate malignant B</td>
-<td align="right">6090</td>
-</tr>
-<tr class="even">
-<td align="left">EBV POS</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">B-lineage, insufficient malignant evidence</td>
-<td align="right">2832</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV POS</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">Not B lineage</td>
-<td align="right">121884</td>
-</tr>
-<tr class="even">
-<td align="left">EBV POS</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">Not evaluated</td>
-<td align="right">64326</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">T/NK</td>
-<td align="left">CD8 cytotoxic</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">T/NK</td>
-<td align="left">CD8 exhausted</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">T/NK</td>
-<td align="left">Treg</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">T/NK</td>
-<td align="left">Tfh / CXCR5+ helper</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">T/NK</td>
-<td align="left">CD4 helper</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">T/NK</td>
-<td align="left">NK</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">T/NK</td>
-<td align="left">Unassigned T/NK</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">Malignant B</td>
-<td align="left">Proliferative</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">EBV NEG</td>
-<td align="left">Malignant B</td>
-<td align="left">GC-like / BCL6-high</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">EBV NEG</td>
-<td align="left">Malignant B</td>
-<td align="left">BCL2-high survival</td>
-<td align="right">0</td>
+<td align="right">19848</td>
+<td align="right">101035</td>
+<td align="right">19.6</td>
 </tr>
 <tr class="odd">
 <td align="left">EBV NEG</td>
 <td align="left">Malignant B</td>
 <td align="left">Plasma-like / PRDM1-XBP1-MZB1</td>
-<td align="right">0</td>
+<td align="right">19079</td>
+<td align="right">101035</td>
+<td align="right">18.9</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">Malignant B</td>
+<td align="left">BCL2-high survival</td>
+<td align="right">16419</td>
+<td align="right">101035</td>
+<td align="right">16.3</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">Malignant B</td>
+<td align="left">GC-like / BCL6-high</td>
+<td align="right">12587</td>
+<td align="right">101035</td>
+<td align="right">12.5</td>
 </tr>
 <tr class="even">
 <td align="left">EBV NEG</td>
 <td align="left">Malignant B</td>
 <td align="left">Antigen-presentation / HLA-II-high</td>
-<td align="right">0</td>
+<td align="right">9892</td>
+<td align="right">101035</td>
+<td align="right">9.8</td>
 </tr>
 <tr class="odd">
 <td align="left">EBV NEG</td>
+<td align="left">T/NK</td>
+<td align="left">CD8 cytotoxic</td>
+<td align="right">6936</td>
+<td align="right">28101</td>
+<td align="right">24.7</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">T/NK</td>
+<td align="left">Unassigned T/NK</td>
+<td align="right">5770</td>
+<td align="right">28101</td>
+<td align="right">20.5</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">T/NK</td>
+<td align="left">CD4 helper</td>
+<td align="right">4827</td>
+<td align="right">28101</td>
+<td align="right">17.2</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">T/NK</td>
+<td align="left">NK</td>
+<td align="right">4058</td>
+<td align="right">28101</td>
+<td align="right">14.4</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">T/NK</td>
+<td align="left">Treg</td>
+<td align="right">3140</td>
+<td align="right">28101</td>
+<td align="right">11.2</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">T/NK</td>
+<td align="left">CD8 exhausted</td>
+<td align="right">1741</td>
+<td align="right">28101</td>
+<td align="right">6.2</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">T/NK</td>
+<td align="left">Tfh / CXCR5+ helper</td>
+<td align="right">1629</td>
+<td align="right">28101</td>
+<td align="right">5.8</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">Malignant B</td>
+<td align="left">Plasma-like / PRDM1-XBP1-MZB1</td>
+<td align="right">46668</td>
+<td align="right">154443</td>
+<td align="right">30.2</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">Malignant B</td>
+<td align="left">Proliferative</td>
+<td align="right">36809</td>
+<td align="right">154443</td>
+<td align="right">23.8</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
 <td align="left">Malignant B</td>
 <td align="left">Other malignant B</td>
-<td align="right">0</td>
+<td align="right">27920</td>
+<td align="right">154443</td>
+<td align="right">18.1</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">Malignant B</td>
+<td align="left">Antigen-presentation / HLA-II-high</td>
+<td align="right">15576</td>
+<td align="right">154443</td>
+<td align="right">10.1</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">Malignant B</td>
+<td align="left">BCL2-high survival</td>
+<td align="right">14892</td>
+<td align="right">154443</td>
+<td align="right">9.6</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">Malignant B</td>
+<td align="left">GC-like / BCL6-high</td>
+<td align="right">12578</td>
+<td align="right">154443</td>
+<td align="right">8.1</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">T/NK</td>
+<td align="left">CD8 cytotoxic</td>
+<td align="right">13937</td>
+<td align="right">65573</td>
+<td align="right">21.3</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">T/NK</td>
+<td align="left">NK</td>
+<td align="right">10780</td>
+<td align="right">65573</td>
+<td align="right">16.4</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">T/NK</td>
+<td align="left">CD4 helper</td>
+<td align="right">10466</td>
+<td align="right">65573</td>
+<td align="right">16.0</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">T/NK</td>
+<td align="left">Treg</td>
+<td align="right">9029</td>
+<td align="right">65573</td>
+<td align="right">13.8</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">T/NK</td>
+<td align="left">Unassigned T/NK</td>
+<td align="right">8057</td>
+<td align="right">65573</td>
+<td align="right">12.3</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV POS</td>
+<td align="left">T/NK</td>
+<td align="left">CD8 exhausted</td>
+<td align="right">7279</td>
+<td align="right">65573</td>
+<td align="right">11.1</td>
+</tr>
+<tr class="even">
+<td align="left">EBV POS</td>
+<td align="left">T/NK</td>
+<td align="left">Tfh / CXCR5+ helper</td>
+<td align="right">6025</td>
+<td align="right">65573</td>
+<td align="right">9.2</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>  if (nrow(candidate_malignant_b_review_flags) &gt; 0) {
+    candidate_malignant_b_review_summary &lt;- aggregate(
+      cell_id ~ patient_ebv_status + patient_id + core_id + candidate_malignant_b_review_flag,
+      data = candidate_malignant_b_review_flags,
+      FUN = length
+    )
+    names(candidate_malignant_b_review_summary)[names(candidate_malignant_b_review_summary) == &quot;cell_id&quot;] &lt;- &quot;n_flagged_cells&quot;
+    candidate_malignant_b_review_summary &lt;- candidate_malignant_b_review_summary[
+      order(
+        candidate_malignant_b_review_summary$patient_ebv_status,
+        candidate_malignant_b_review_summary$patient_id,
+        candidate_malignant_b_review_summary$core_id,
+        -candidate_malignant_b_review_summary$n_flagged_cells
+      ),
+      ,
+      drop = FALSE
+    ]
+    knitr::kable(
+      candidate_malignant_b_review_summary,
+      row.names = FALSE,
+      caption = &quot;Candidate malignant-B review flags summarized by patient and core&quot;
+    )
+  }</code></pre>
+<table>
+<caption>Candidate malignant-B review flags summarized by patient and
+core</caption>
+<colgroup>
+<col width="21%" />
+<col width="12%" />
+<col width="9%" />
+<col width="38%" />
+<col width="18%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">patient_ebv_status</th>
+<th align="left">patient_id</th>
+<th align="left">core_id</th>
+<th align="left">candidate_malignant_b_review_flag</th>
+<th align="right">n_flagged_cells</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">PTLD_P001</td>
+<td align="left">R2_C2</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">971</td>
 </tr>
 <tr class="even">
 <td align="left">EBV NEG</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">EBV-positive candidate malignant B</td>
-<td align="right">1306</td>
+<td align="left">PTLD_P001</td>
+<td align="left">R3_C2</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">1212</td>
 </tr>
 <tr class="odd">
 <td align="left">EBV NEG</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">Candidate malignant B</td>
-<td align="right">94031</td>
+<td align="left">PTLD_P004</td>
+<td align="left">R4_C2</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">1401</td>
 </tr>
 <tr class="even">
 <td align="left">EBV NEG</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">B-lineage, insufficient malignant evidence</td>
-<td align="right">15059</td>
+<td align="left">PTLD_P005</td>
+<td align="left">R2_C4</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">56</td>
 </tr>
 <tr class="odd">
 <td align="left">EBV NEG</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">Not B lineage</td>
-<td align="right">59582</td>
+<td align="left">PTLD_P005</td>
+<td align="left">R3_C4</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">412</td>
 </tr>
 <tr class="even">
 <td align="left">EBV NEG</td>
-<td align="left">Candidate malignant B</td>
-<td align="left">Not evaluated</td>
-<td align="right">47420</td>
+<td align="left">PTLD_P005</td>
+<td align="left">R5_C6</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">195</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">PTLD_P006</td>
+<td align="left">R4_C3</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">831</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">PTLD_P007</td>
+<td align="left">R4_C4</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">387</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">PTLD_P007</td>
+<td align="left">R5_C5</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">455</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">PTLD_P012</td>
+<td align="left">R1_C3</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">309</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">PTLD_P012</td>
+<td align="left">R2_C3</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">44</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">PTLD_P012</td>
+<td align="left">R3_C3</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">476</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">PTLD_P016</td>
+<td align="left">R5_C3</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">101</td>
+</tr>
+<tr class="even">
+<td align="left">EBV NEG</td>
+<td align="left">PTLD_P019</td>
+<td align="left">R1_C2</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">2676</td>
+</tr>
+<tr class="odd">
+<td align="left">EBV NEG</td>
+<td align="left">PTLD_P019</td>
+<td align="left">R5_C4</td>
+<td align="left">EBV signal discordant/review</td>
+<td align="right">246</td>
 </tr>
 </tbody>
 </table>
@@ -3804,8 +4111,8 @@ atlas summary with Enrichr labels and inventory composition</h2>
 <p>This section summarizes shared PTLD Harmony clusters using
 cluster-level Enrichr labels, top marker-gene expression profiles, and
 per-cluster source composition from the inventory-mapped
-<code>TMA.ID</code>, <code>Biopsy.site</code>, and
-<code>Biopsy.type</code> fields.</p>
+<code>TMA.ID</code>, <code>Biopsy site</code>, and
+<code>Biopsy type</code> fields.</p>
 <table>
 <caption>Enrichr suggested label for each Harmony cluster used in this
 section</caption>
@@ -3898,7 +4205,924 @@ section</caption>
 </tr>
 </tbody>
 </table>
-<p><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-1.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-2.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-3.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-4.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
+<table style="width:100%;">
+<caption>Dominant Enrichr label distribution by Biopsy site</caption>
+<colgroup>
+<col width="15%" />
+<col width="49%" />
+<col width="6%" />
+<col width="18%" />
+<col width="11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Biopsy site</th>
+<th align="left">Enrichr label</th>
+<th align="right">Cells</th>
+<th align="right">Biopsy site total</th>
+<th align="left">Proportion</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Upper GI tract</td>
+<td align="left">T Cells</td>
+<td align="right">51755</td>
+<td align="right">236638</td>
+<td align="left">21.9%</td>
+</tr>
+<tr class="even">
+<td align="left">Upper GI tract</td>
+<td align="left">B Cells Memory</td>
+<td align="right">35866</td>
+<td align="right">236638</td>
+<td align="left">15.2%</td>
+</tr>
+<tr class="odd">
+<td align="left">Upper GI tract</td>
+<td align="left">Liver-L2-Proliferating T/NK</td>
+<td align="right">32484</td>
+<td align="right">236638</td>
+<td align="left">13.7%</td>
+</tr>
+<tr class="even">
+<td align="left">Upper GI tract</td>
+<td align="left">B Cell Blood Human</td>
+<td align="right">22701</td>
+<td align="right">236638</td>
+<td align="left">9.6%</td>
+</tr>
+<tr class="odd">
+<td align="left">Upper GI tract</td>
+<td align="left">Alveolar Macrophages</td>
+<td align="right">20840</td>
+<td align="right">236638</td>
+<td align="left">8.8%</td>
+</tr>
+<tr class="even">
+<td align="left">Upper GI tract</td>
+<td align="left">Fibroblasts</td>
+<td align="right">14801</td>
+<td align="right">236638</td>
+<td align="left">6.3%</td>
+</tr>
+<tr class="odd">
+<td align="left">Upper GI tract</td>
+<td align="left">Myeloid cells in Adrenal</td>
+<td align="right">9955</td>
+<td align="right">236638</td>
+<td align="left">4.2%</td>
+</tr>
+<tr class="even">
+<td align="left">Upper GI tract</td>
+<td align="left">Exhausted CD8+ T Cell Breast Human</td>
+<td align="right">9691</td>
+<td align="right">236638</td>
+<td align="left">4.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Upper GI tract</td>
+<td align="left">Endothelial Cells</td>
+<td align="right">9524</td>
+<td align="right">236638</td>
+<td align="left">4.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Upper GI tract</td>
+<td align="left">Goblet Cells</td>
+<td align="right">8050</td>
+<td align="right">236638</td>
+<td align="left">3.4%</td>
+</tr>
+<tr class="odd">
+<td align="left">Upper GI tract</td>
+<td align="left">Plasma Cells</td>
+<td align="right">7388</td>
+<td align="right">236638</td>
+<td align="left">3.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Upper GI tract</td>
+<td align="left">B Cells</td>
+<td align="right">5383</td>
+<td align="right">236638</td>
+<td align="left">2.3%</td>
+</tr>
+<tr class="odd">
+<td align="left">Upper GI tract</td>
+<td align="left">B Cell Undefined Human</td>
+<td align="right">4422</td>
+<td align="right">236638</td>
+<td align="left">1.9%</td>
+</tr>
+<tr class="even">
+<td align="left">Upper GI tract</td>
+<td align="left">Corneal and conjunctival epithelial cells in Eye</td>
+<td align="right">1982</td>
+<td align="right">236638</td>
+<td align="left">0.8%</td>
+</tr>
+<tr class="odd">
+<td align="left">Upper GI tract</td>
+<td align="left">Mast Cell Stomach Human</td>
+<td align="right">1371</td>
+<td align="right">236638</td>
+<td align="left">0.6%</td>
+</tr>
+<tr class="even">
+<td align="left">Upper GI tract</td>
+<td align="left">Antigen presenting cells in Thymus</td>
+<td align="right">425</td>
+<td align="right">236638</td>
+<td align="left">0.2%</td>
+</tr>
+<tr class="odd">
+<td align="left">Tonsil</td>
+<td align="left">T Cells</td>
+<td align="right">21927</td>
+<td align="right">65878</td>
+<td align="left">33.3%</td>
+</tr>
+<tr class="even">
+<td align="left">Tonsil</td>
+<td align="left">Antigen presenting cells in Thymus</td>
+<td align="right">12277</td>
+<td align="right">65878</td>
+<td align="left">18.6%</td>
+</tr>
+<tr class="odd">
+<td align="left">Tonsil</td>
+<td align="left">B Cells Memory</td>
+<td align="right">8574</td>
+<td align="right">65878</td>
+<td align="left">13.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Tonsil</td>
+<td align="left">Alveolar Macrophages</td>
+<td align="right">5759</td>
+<td align="right">65878</td>
+<td align="left">8.7%</td>
+</tr>
+<tr class="odd">
+<td align="left">Tonsil</td>
+<td align="left">Plasma Cells</td>
+<td align="right">4937</td>
+<td align="right">65878</td>
+<td align="left">7.5%</td>
+</tr>
+<tr class="even">
+<td align="left">Tonsil</td>
+<td align="left">B Cells</td>
+<td align="right">4900</td>
+<td align="right">65878</td>
+<td align="left">7.4%</td>
+</tr>
+<tr class="odd">
+<td align="left">Tonsil</td>
+<td align="left">Fibroblasts</td>
+<td align="right">2106</td>
+<td align="right">65878</td>
+<td align="left">3.2%</td>
+</tr>
+<tr class="even">
+<td align="left">Tonsil</td>
+<td align="left">Endothelial Cells</td>
+<td align="right">1830</td>
+<td align="right">65878</td>
+<td align="left">2.8%</td>
+</tr>
+<tr class="odd">
+<td align="left">Tonsil</td>
+<td align="left">Corneal and conjunctival epithelial cells in Eye</td>
+<td align="right">1385</td>
+<td align="right">65878</td>
+<td align="left">2.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Tonsil</td>
+<td align="left">Goblet Cells</td>
+<td align="right">913</td>
+<td align="right">65878</td>
+<td align="left">1.4%</td>
+</tr>
+<tr class="odd">
+<td align="left">Tonsil</td>
+<td align="left">Exhausted CD8+ T Cell Breast Human</td>
+<td align="right">742</td>
+<td align="right">65878</td>
+<td align="left">1.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Tonsil</td>
+<td align="left">Myeloid cells in Adrenal</td>
+<td align="right">245</td>
+<td align="right">65878</td>
+<td align="left">0.4%</td>
+</tr>
+<tr class="odd">
+<td align="left">Tonsil</td>
+<td align="left">Mast Cell Stomach Human</td>
+<td align="right">193</td>
+<td align="right">65878</td>
+<td align="left">0.3%</td>
+</tr>
+<tr class="even">
+<td align="left">Tonsil</td>
+<td align="left">B Cell Blood Human</td>
+<td align="right">42</td>
+<td align="right">65878</td>
+<td align="left">0.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Tonsil</td>
+<td align="left">B Cell Undefined Human</td>
+<td align="right">28</td>
+<td align="right">65878</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Tonsil</td>
+<td align="left">Liver-L2-Proliferating T/NK</td>
+<td align="right">20</td>
+<td align="right">65878</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Larynx</td>
+<td align="left">Plasma Cells</td>
+<td align="right">41861</td>
+<td align="right">61004</td>
+<td align="left">68.6%</td>
+</tr>
+<tr class="even">
+<td align="left">Larynx</td>
+<td align="left">Exhausted CD8+ T Cell Breast Human</td>
+<td align="right">7641</td>
+<td align="right">61004</td>
+<td align="left">12.5%</td>
+</tr>
+<tr class="odd">
+<td align="left">Larynx</td>
+<td align="left">T Cells</td>
+<td align="right">3243</td>
+<td align="right">61004</td>
+<td align="left">5.3%</td>
+</tr>
+<tr class="even">
+<td align="left">Larynx</td>
+<td align="left">Alveolar Macrophages</td>
+<td align="right">2890</td>
+<td align="right">61004</td>
+<td align="left">4.7%</td>
+</tr>
+<tr class="odd">
+<td align="left">Larynx</td>
+<td align="left">Endothelial Cells</td>
+<td align="right">2638</td>
+<td align="right">61004</td>
+<td align="left">4.3%</td>
+</tr>
+<tr class="even">
+<td align="left">Larynx</td>
+<td align="left">Fibroblasts</td>
+<td align="right">2109</td>
+<td align="right">61004</td>
+<td align="left">3.5%</td>
+</tr>
+<tr class="odd">
+<td align="left">Larynx</td>
+<td align="left">Corneal and conjunctival epithelial cells in Eye</td>
+<td align="right">226</td>
+<td align="right">61004</td>
+<td align="left">0.4%</td>
+</tr>
+<tr class="even">
+<td align="left">Larynx</td>
+<td align="left">B Cells Memory</td>
+<td align="right">151</td>
+<td align="right">61004</td>
+<td align="left">0.2%</td>
+</tr>
+<tr class="odd">
+<td align="left">Larynx</td>
+<td align="left">Goblet Cells</td>
+<td align="right">89</td>
+<td align="right">61004</td>
+<td align="left">0.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Larynx</td>
+<td align="left">B Cells</td>
+<td align="right">88</td>
+<td align="right">61004</td>
+<td align="left">0.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Larynx</td>
+<td align="left">Antigen presenting cells in Thymus</td>
+<td align="right">27</td>
+<td align="right">61004</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Larynx</td>
+<td align="left">Mast Cell Stomach Human</td>
+<td align="right">19</td>
+<td align="right">61004</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Larynx</td>
+<td align="left">Liver-L2-Proliferating T/NK</td>
+<td align="right">9</td>
+<td align="right">61004</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Larynx</td>
+<td align="left">B Cell Blood Human</td>
+<td align="right">8</td>
+<td align="right">61004</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Larynx</td>
+<td align="left">Myeloid cells in Adrenal</td>
+<td align="right">3</td>
+<td align="right">61004</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Larynx</td>
+<td align="left">B Cell Undefined Human</td>
+<td align="right">2</td>
+<td align="right">61004</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Neck</td>
+<td align="left">B Cells</td>
+<td align="right">15401</td>
+<td align="right">27851</td>
+<td align="left">55.3%</td>
+</tr>
+<tr class="even">
+<td align="left">Neck</td>
+<td align="left">Plasma Cells</td>
+<td align="right">3362</td>
+<td align="right">27851</td>
+<td align="left">12.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Neck</td>
+<td align="left">Myeloid cells in Adrenal</td>
+<td align="right">1811</td>
+<td align="right">27851</td>
+<td align="left">6.5%</td>
+</tr>
+<tr class="even">
+<td align="left">Neck</td>
+<td align="left">Fibroblasts</td>
+<td align="right">1757</td>
+<td align="right">27851</td>
+<td align="left">6.3%</td>
+</tr>
+<tr class="odd">
+<td align="left">Neck</td>
+<td align="left">B Cell Blood Human</td>
+<td align="right">1452</td>
+<td align="right">27851</td>
+<td align="left">5.2%</td>
+</tr>
+<tr class="even">
+<td align="left">Neck</td>
+<td align="left">Endothelial Cells</td>
+<td align="right">1149</td>
+<td align="right">27851</td>
+<td align="left">4.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Neck</td>
+<td align="left">B Cells Memory</td>
+<td align="right">1048</td>
+<td align="right">27851</td>
+<td align="left">3.8%</td>
+</tr>
+<tr class="even">
+<td align="left">Neck</td>
+<td align="left">T Cells</td>
+<td align="right">587</td>
+<td align="right">27851</td>
+<td align="left">2.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Neck</td>
+<td align="left">Mast Cell Stomach Human</td>
+<td align="right">582</td>
+<td align="right">27851</td>
+<td align="left">2.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Neck</td>
+<td align="left">Alveolar Macrophages</td>
+<td align="right">524</td>
+<td align="right">27851</td>
+<td align="left">1.9%</td>
+</tr>
+<tr class="odd">
+<td align="left">Neck</td>
+<td align="left">B Cell Undefined Human</td>
+<td align="right">56</td>
+<td align="right">27851</td>
+<td align="left">0.2%</td>
+</tr>
+<tr class="even">
+<td align="left">Neck</td>
+<td align="left">Exhausted CD8+ T Cell Breast Human</td>
+<td align="right">45</td>
+<td align="right">27851</td>
+<td align="left">0.2%</td>
+</tr>
+<tr class="odd">
+<td align="left">Neck</td>
+<td align="left">Corneal and conjunctival epithelial cells in Eye</td>
+<td align="right">39</td>
+<td align="right">27851</td>
+<td align="left">0.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Neck</td>
+<td align="left">Goblet Cells</td>
+<td align="right">21</td>
+<td align="right">27851</td>
+<td align="left">0.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Neck</td>
+<td align="left">Antigen presenting cells in Thymus</td>
+<td align="right">14</td>
+<td align="right">27851</td>
+<td align="left">0.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Neck</td>
+<td align="left">Liver-L2-Proliferating T/NK</td>
+<td align="right">3</td>
+<td align="right">27851</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Inguinal LN</td>
+<td align="left">T Cells</td>
+<td align="right">6445</td>
+<td align="right">22167</td>
+<td align="left">29.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Inguinal LN</td>
+<td align="left">B Cells</td>
+<td align="right">5832</td>
+<td align="right">22167</td>
+<td align="left">26.3%</td>
+</tr>
+<tr class="odd">
+<td align="left">Inguinal LN</td>
+<td align="left">Alveolar Macrophages</td>
+<td align="right">3620</td>
+<td align="right">22167</td>
+<td align="left">16.3%</td>
+</tr>
+<tr class="even">
+<td align="left">Inguinal LN</td>
+<td align="left">Endothelial Cells</td>
+<td align="right">2174</td>
+<td align="right">22167</td>
+<td align="left">9.8%</td>
+</tr>
+<tr class="odd">
+<td align="left">Inguinal LN</td>
+<td align="left">Fibroblasts</td>
+<td align="right">1572</td>
+<td align="right">22167</td>
+<td align="left">7.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Inguinal LN</td>
+<td align="left">Plasma Cells</td>
+<td align="right">1284</td>
+<td align="right">22167</td>
+<td align="left">5.8%</td>
+</tr>
+<tr class="odd">
+<td align="left">Inguinal LN</td>
+<td align="left">Exhausted CD8+ T Cell Breast Human</td>
+<td align="right">545</td>
+<td align="right">22167</td>
+<td align="left">2.5%</td>
+</tr>
+<tr class="even">
+<td align="left">Inguinal LN</td>
+<td align="left">B Cells Memory</td>
+<td align="right">511</td>
+<td align="right">22167</td>
+<td align="left">2.3%</td>
+</tr>
+<tr class="odd">
+<td align="left">Inguinal LN</td>
+<td align="left">Antigen presenting cells in Thymus</td>
+<td align="right">113</td>
+<td align="right">22167</td>
+<td align="left">0.5%</td>
+</tr>
+<tr class="even">
+<td align="left">Inguinal LN</td>
+<td align="left">Mast Cell Stomach Human</td>
+<td align="right">24</td>
+<td align="right">22167</td>
+<td align="left">0.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Inguinal LN</td>
+<td align="left">Corneal and conjunctival epithelial cells in Eye</td>
+<td align="right">18</td>
+<td align="right">22167</td>
+<td align="left">0.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Inguinal LN</td>
+<td align="left">B Cell Blood Human</td>
+<td align="right">10</td>
+<td align="right">22167</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Inguinal LN</td>
+<td align="left">Liver-L2-Proliferating T/NK</td>
+<td align="right">10</td>
+<td align="right">22167</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Inguinal LN</td>
+<td align="left">Goblet Cells</td>
+<td align="right">6</td>
+<td align="right">22167</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Inguinal LN</td>
+<td align="left">Myeloid cells in Adrenal</td>
+<td align="right">2</td>
+<td align="right">22167</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Inguinal LN</td>
+<td align="left">B Cell Undefined Human</td>
+<td align="right">1</td>
+<td align="right">22167</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Cecum</td>
+<td align="left">B Cell Blood Human</td>
+<td align="right">5120</td>
+<td align="right">18942</td>
+<td align="left">27.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Cecum</td>
+<td align="left">B Cell Undefined Human</td>
+<td align="right">2472</td>
+<td align="right">18942</td>
+<td align="left">13.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Cecum</td>
+<td align="left">Plasma Cells</td>
+<td align="right">2299</td>
+<td align="right">18942</td>
+<td align="left">12.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Cecum</td>
+<td align="left">Goblet Cells</td>
+<td align="right">2204</td>
+<td align="right">18942</td>
+<td align="left">11.6%</td>
+</tr>
+<tr class="odd">
+<td align="left">Cecum</td>
+<td align="left">Alveolar Macrophages</td>
+<td align="right">1794</td>
+<td align="right">18942</td>
+<td align="left">9.5%</td>
+</tr>
+<tr class="even">
+<td align="left">Cecum</td>
+<td align="left">Fibroblasts</td>
+<td align="right">1524</td>
+<td align="right">18942</td>
+<td align="left">8.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Cecum</td>
+<td align="left">T Cells</td>
+<td align="right">1239</td>
+<td align="right">18942</td>
+<td align="left">6.5%</td>
+</tr>
+<tr class="even">
+<td align="left">Cecum</td>
+<td align="left">Endothelial Cells</td>
+<td align="right">982</td>
+<td align="right">18942</td>
+<td align="left">5.2%</td>
+</tr>
+<tr class="odd">
+<td align="left">Cecum</td>
+<td align="left">Myeloid cells in Adrenal</td>
+<td align="right">424</td>
+<td align="right">18942</td>
+<td align="left">2.2%</td>
+</tr>
+<tr class="even">
+<td align="left">Cecum</td>
+<td align="left">B Cells Memory</td>
+<td align="right">305</td>
+<td align="right">18942</td>
+<td align="left">1.6%</td>
+</tr>
+<tr class="odd">
+<td align="left">Cecum</td>
+<td align="left">B Cells</td>
+<td align="right">240</td>
+<td align="right">18942</td>
+<td align="left">1.3%</td>
+</tr>
+<tr class="even">
+<td align="left">Cecum</td>
+<td align="left">Mast Cell Stomach Human</td>
+<td align="right">193</td>
+<td align="right">18942</td>
+<td align="left">1.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Cecum</td>
+<td align="left">Exhausted CD8+ T Cell Breast Human</td>
+<td align="right">68</td>
+<td align="right">18942</td>
+<td align="left">0.4%</td>
+</tr>
+<tr class="even">
+<td align="left">Cecum</td>
+<td align="left">Antigen presenting cells in Thymus</td>
+<td align="right">35</td>
+<td align="right">18942</td>
+<td align="left">0.2%</td>
+</tr>
+<tr class="odd">
+<td align="left">Cecum</td>
+<td align="left">Corneal and conjunctival epithelial cells in Eye</td>
+<td align="right">35</td>
+<td align="right">18942</td>
+<td align="left">0.2%</td>
+</tr>
+<tr class="even">
+<td align="left">Cecum</td>
+<td align="left">Liver-L2-Proliferating T/NK</td>
+<td align="right">8</td>
+<td align="right">18942</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Axillary LN</td>
+<td align="left">B Cell Blood Human</td>
+<td align="right">8269</td>
+<td align="right">12538</td>
+<td align="left">66.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Axillary LN</td>
+<td align="left">Myeloid cells in Adrenal</td>
+<td align="right">1626</td>
+<td align="right">12538</td>
+<td align="left">13.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Axillary LN</td>
+<td align="left">T Cells</td>
+<td align="right">867</td>
+<td align="right">12538</td>
+<td align="left">6.9%</td>
+</tr>
+<tr class="even">
+<td align="left">Axillary LN</td>
+<td align="left">Alveolar Macrophages</td>
+<td align="right">829</td>
+<td align="right">12538</td>
+<td align="left">6.6%</td>
+</tr>
+<tr class="odd">
+<td align="left">Axillary LN</td>
+<td align="left">Fibroblasts</td>
+<td align="right">368</td>
+<td align="right">12538</td>
+<td align="left">2.9%</td>
+</tr>
+<tr class="even">
+<td align="left">Axillary LN</td>
+<td align="left">B Cells Memory</td>
+<td align="right">150</td>
+<td align="right">12538</td>
+<td align="left">1.2%</td>
+</tr>
+<tr class="odd">
+<td align="left">Axillary LN</td>
+<td align="left">B Cells</td>
+<td align="right">135</td>
+<td align="right">12538</td>
+<td align="left">1.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Axillary LN</td>
+<td align="left">Endothelial Cells</td>
+<td align="right">96</td>
+<td align="right">12538</td>
+<td align="left">0.8%</td>
+</tr>
+<tr class="odd">
+<td align="left">Axillary LN</td>
+<td align="left">Plasma Cells</td>
+<td align="right">54</td>
+<td align="right">12538</td>
+<td align="left">0.4%</td>
+</tr>
+<tr class="even">
+<td align="left">Axillary LN</td>
+<td align="left">B Cell Undefined Human</td>
+<td align="right">37</td>
+<td align="right">12538</td>
+<td align="left">0.3%</td>
+</tr>
+<tr class="odd">
+<td align="left">Axillary LN</td>
+<td align="left">Mast Cell Stomach Human</td>
+<td align="right">35</td>
+<td align="right">12538</td>
+<td align="left">0.3%</td>
+</tr>
+<tr class="even">
+<td align="left">Axillary LN</td>
+<td align="left">Exhausted CD8+ T Cell Breast Human</td>
+<td align="right">29</td>
+<td align="right">12538</td>
+<td align="left">0.2%</td>
+</tr>
+<tr class="odd">
+<td align="left">Axillary LN</td>
+<td align="left">Antigen presenting cells in Thymus</td>
+<td align="right">22</td>
+<td align="right">12538</td>
+<td align="left">0.2%</td>
+</tr>
+<tr class="even">
+<td align="left">Axillary LN</td>
+<td align="left">Corneal and conjunctival epithelial cells in Eye</td>
+<td align="right">13</td>
+<td align="right">12538</td>
+<td align="left">0.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Axillary LN</td>
+<td align="left">Goblet Cells</td>
+<td align="right">6</td>
+<td align="right">12538</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Axillary LN</td>
+<td align="left">Liver-L2-Proliferating T/NK</td>
+<td align="right">2</td>
+<td align="right">12538</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="odd">
+<td align="left">Lung</td>
+<td align="left">B Cells Memory</td>
+<td align="right">5231</td>
+<td align="right">11398</td>
+<td align="left">45.9%</td>
+</tr>
+<tr class="even">
+<td align="left">Lung</td>
+<td align="left">T Cells</td>
+<td align="right">1396</td>
+<td align="right">11398</td>
+<td align="left">12.2%</td>
+</tr>
+<tr class="odd">
+<td align="left">Lung</td>
+<td align="left">Goblet Cells</td>
+<td align="right">1161</td>
+<td align="right">11398</td>
+<td align="left">10.2%</td>
+</tr>
+<tr class="even">
+<td align="left">Lung</td>
+<td align="left">Endothelial Cells</td>
+<td align="right">1109</td>
+<td align="right">11398</td>
+<td align="left">9.7%</td>
+</tr>
+<tr class="odd">
+<td align="left">Lung</td>
+<td align="left">Alveolar Macrophages</td>
+<td align="right">1079</td>
+<td align="right">11398</td>
+<td align="left">9.5%</td>
+</tr>
+<tr class="even">
+<td align="left">Lung</td>
+<td align="left">Exhausted CD8+ T Cell Breast Human</td>
+<td align="right">990</td>
+<td align="right">11398</td>
+<td align="left">8.7%</td>
+</tr>
+<tr class="odd">
+<td align="left">Lung</td>
+<td align="left">Fibroblasts</td>
+<td align="right">233</td>
+<td align="right">11398</td>
+<td align="left">2.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Lung</td>
+<td align="left">Corneal and conjunctival epithelial cells in Eye</td>
+<td align="right">84</td>
+<td align="right">11398</td>
+<td align="left">0.7%</td>
+</tr>
+<tr class="odd">
+<td align="left">Lung</td>
+<td align="left">Myeloid cells in Adrenal</td>
+<td align="right">41</td>
+<td align="right">11398</td>
+<td align="left">0.4%</td>
+</tr>
+<tr class="even">
+<td align="left">Lung</td>
+<td align="left">Antigen presenting cells in Thymus</td>
+<td align="right">21</td>
+<td align="right">11398</td>
+<td align="left">0.2%</td>
+</tr>
+<tr class="odd">
+<td align="left">Lung</td>
+<td align="left">Liver-L2-Proliferating T/NK</td>
+<td align="right">19</td>
+<td align="right">11398</td>
+<td align="left">0.2%</td>
+</tr>
+<tr class="even">
+<td align="left">Lung</td>
+<td align="left">Plasma Cells</td>
+<td align="right">18</td>
+<td align="right">11398</td>
+<td align="left">0.2%</td>
+</tr>
+<tr class="odd">
+<td align="left">Lung</td>
+<td align="left">B Cell Undefined Human</td>
+<td align="right">6</td>
+<td align="right">11398</td>
+<td align="left">0.1%</td>
+</tr>
+<tr class="even">
+<td align="left">Lung</td>
+<td align="left">Mast Cell Stomach Human</td>
+<td align="right">6</td>
+<td align="right">11398</td>
+<td align="left">0.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Lung</td>
+<td align="left">B Cell Blood Human</td>
+<td align="right">2</td>
+<td align="right">11398</td>
+<td align="left">0.0%</td>
+</tr>
+<tr class="even">
+<td align="left">Lung</td>
+<td align="left">B Cells</td>
+<td align="right">2</td>
+<td align="right">11398</td>
+<td align="left">0.0%</td>
+</tr>
+</tbody>
+</table>
+<p><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-1.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-2.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-3.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-4.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="03_cell_annotation_files/figure-html/harmony_enrichr_cluster_inventory_summary-5.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="enrichr-sanity-check-against-celltypist-annotations"
 class="section level2" number="1.13">
@@ -3982,7 +5206,7 @@ whose Harmony cluster received each focused Enrichr fine class</caption>
 <col width="2%" />
 <col width="19%" />
 <col width="6%" />
-<col width="8%" />
+<col width="7%" />
 <col width="6%" />
 <col width="6%" />
 <col width="6%" />
@@ -4017,7 +5241,7 @@ clusters</th>
 <tbody>
 <tr class="odd">
 <td align="left">MAIT</td>
-<td align="right">62</td>
+<td align="right">60</td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
@@ -4047,7 +5271,7 @@ class="xenium-qc-frac xenium-qc-frac--review">0.000</span></td>
 </tr>
 <tr class="even">
 <td align="left">Memory CD8 T cell</td>
-<td align="right">4201</td>
+<td align="right">3935</td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
@@ -4077,42 +5301,42 @@ class="xenium-qc-frac xenium-qc-frac--review">0.001</span></td>
 </tr>
 <tr class="odd">
 <td align="left">Memory CD4 T cell</td>
-<td align="right">1352</td>
+<td align="right">1289</td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.951</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.956</span></td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--agree">Strong
 agreement</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.008</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.007</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.004</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.003</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.015</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.951</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.956</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--expected">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.004</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.005</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.006</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.003</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--review">0.012</span></td>
 </tr>
 <tr class="even">
 <td align="left">Naive CD8 T cell</td>
-<td align="right">4149</td>
+<td align="right">3727</td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.910</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.925</span></td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--agree">Strong
 agreement</span></td>
@@ -4123,229 +5347,288 @@ class="xenium-qc-frac xenium-qc-frac--neutral">0.006</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.002</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.910</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.925</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--expected">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.034</span></td>
-<td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.029</span></td>
-<td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--review">0.014</span></td>
-</tr>
-<tr class="odd">
-<td align="left">Treg-like T cell</td>
-<td align="right">11380</td>
-<td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
-cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
-memory</span></td>
-<td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.905</span></td>
-<td align="left"><span
-class="xenium-qc-badge xenium-qc-badge--agree">Strong
-agreement</span></td>
-<td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.005</span></td>
-<td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.025</span></td>
-<td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.005</span></td>
-<td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.905</span></td>
-<td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.000</span></td>
-<td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
-<td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.037</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.035</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.010</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--review">0.012</span></td>
+class="xenium-qc-frac xenium-qc-frac--review">0.016</span></td>
+</tr>
+<tr class="odd">
+<td align="left">Treg-like T cell</td>
+<td align="right">10546</td>
+<td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
+cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
+memory</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--expected">0.905</span></td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--agree">Strong
+agreement</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.005</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.027</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.005</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--expected">0.905</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--expected">0.000</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.039</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.005</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--review">0.013</span></td>
 </tr>
 <tr class="even">
 <td align="left">gdT</td>
-<td align="right">138</td>
+<td align="right">131</td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.870</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.885</span></td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--agree">Strong
 agreement</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.007</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.014</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.008</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.007</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.008</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.870</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.885</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--expected">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.058</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.053</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.014</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.015</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--review">0.029</span></td>
+class="xenium-qc-frac xenium-qc-frac--review">0.031</span></td>
 </tr>
 <tr class="odd">
 <td align="left">Monocyte</td>
-<td align="right">8164</td>
+<td align="right">7346</td>
 <td align="left"><span
 class="xenium-qc-broad xenium-qc-broad--myeloid">Myeloid</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.733</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.777</span></td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--agree">Strong
 agreement</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.004</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.005</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.007</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.004</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.179</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.180</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.733</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.777</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.067</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.020</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--review">0.006</span></td>
+class="xenium-qc-frac xenium-qc-frac--review">0.007</span></td>
 </tr>
 <tr class="even">
 <td align="left">T cell</td>
-<td align="right">79957</td>
+<td align="right">72288</td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.703</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.711</span></td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--partial">Partial
 agreement</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.007</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.026</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.028</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.011</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.012</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.703</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.711</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--expected">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.091</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.097</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.040</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.014</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--review">0.122</span></td>
+class="xenium-qc-frac xenium-qc-frac--review">0.131</span></td>
 </tr>
 <tr class="odd">
 <td align="left">CD4 T cell</td>
-<td align="right">690</td>
+<td align="right">656</td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.699</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.698</span></td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--partial">Partial
 agreement</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.026</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.027</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.019</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.018</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.065</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.069</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.699</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.698</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--expected">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.122</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.123</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.016</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.011</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--review">0.054</span></td>
+class="xenium-qc-frac xenium-qc-frac--review">0.053</span></td>
 </tr>
 <tr class="even">
 <td align="left">B cell</td>
-<td align="right">274950</td>
+<td align="right">255478</td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--b">B
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--b">B
 memory</span> <span class="xenium-qc-broad xenium-qc-broad--b">Plasma
 cell</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.665</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.690</span></td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--partial">Partial
 agreement</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.275</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.286</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.175</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.182</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.215</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.221</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.185</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.192</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.049</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.010</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--review">0.060</span></td>
+</tr>
+<tr class="odd">
+<td align="left">Endothelial cell</td>
+<td align="right">12920</td>
+<td align="left"><span
+class="xenium-qc-broad xenium-qc-broad--stromal">Stromal/vascular</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--expected">0.685</span></td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--partial">Partial
+agreement</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.014</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.012</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.027</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.197</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.052</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--expected">0.685</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--review">0.013</span></td>
+</tr>
+<tr class="even">
+<td align="left">Fibroblast</td>
+<td align="right">34057</td>
+<td align="left"><span
+class="xenium-qc-broad xenium-qc-broad--stromal">Stromal/vascular</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--expected">0.639</span></td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--partial">Partial
+agreement</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.048</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.045</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.030</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--review">0.058</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.060</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.163</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.047</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--expected">0.639</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--review">0.012</span></td>
 </tr>
 <tr class="odd">
 <td align="left">CD14 monocyte</td>
-<td align="right">56759</td>
+<td align="right">36024</td>
 <td align="left"><span
 class="xenium-qc-broad xenium-qc-broad--myeloid">Myeloid</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.352</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.520</span></td>
 <td align="left"><span
-class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
+class="xenium-qc-badge xenium-qc-badge--partial">Partial
+agreement</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.005</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.007</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.019</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.028</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.015</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.023</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.144</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.208</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--expected">0.352</span></td>
+class="xenium-qc-frac xenium-qc-frac--expected">0.520</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.392</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.103</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--review">0.075</span></td>
+class="xenium-qc-frac xenium-qc-frac--review">0.111</span></td>
 </tr>
 <tr class="even">
 <td align="left">NK cell</td>
-<td align="right">1218</td>
+<td align="right">1027</td>
 <td align="left"><span
 class="xenium-qc-broad xenium-qc-broad--t">NK</span></td>
 <td align="left"><span
@@ -4353,27 +5636,27 @@ class="xenium-qc-frac xenium-qc-frac--expected">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.009</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.011</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.017</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.020</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.009</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.011</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.639</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.702</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--expected">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.141</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.160</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.147</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.053</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--review">0.038</span></td>
+class="xenium-qc-frac xenium-qc-frac--review">0.044</span></td>
 </tr>
 <tr class="odd">
 <td align="left">ILC</td>
-<td align="right">33</td>
+<td align="right">15</td>
 <td align="left"><span
 class="xenium-qc-broad xenium-qc-broad--t">NK</span></td>
 <td align="left"><span
@@ -4387,17 +5670,17 @@ class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.030</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--expected">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.091</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.200</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.515</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.133</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--review">0.364</span></td>
+class="xenium-qc-frac xenium-qc-frac--review">0.667</span></td>
 </tr>
 <tr class="even">
 <td align="left">Unassigned</td>
@@ -4408,23 +5691,50 @@ class="xenium-qc-frac xenium-qc-frac--expected"></span></td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.008</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.012</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.021</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.032</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.007</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.011</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.154</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.211</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.484</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.109</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--review">0.141</span></td>
+</tr>
+<tr class="odd">
+<td align="left">Pericyte / smooth muscle</td>
+<td align="right">NA</td>
+<td align="left"></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--expected"></span></td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.079</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.040</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.035</span></td>
+<td align="left"><span
+class="xenium-qc-frac xenium-qc-frac--neutral">0.142</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
 class="xenium-qc-frac xenium-qc-frac--neutral">0.000</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.325</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.047</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--neutral">0.387</span></td>
+class="xenium-qc-frac xenium-qc-frac--neutral">0.590</span></td>
 <td align="left"><span
-class="xenium-qc-frac xenium-qc-frac--review">0.098</span></td>
+class="xenium-qc-frac xenium-qc-frac--review">0.067</span></td>
 </tr>
 </tbody>
 </table>
@@ -4463,8 +5773,8 @@ off-context evidence</caption>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
-<td align="right">4201</td>
-<td align="right">4198</td>
+<td align="right">3935</td>
+<td align="right">3932</td>
 <td align="right">3</td>
 <td align="right">3</td>
 <td align="right">0.999</td>
@@ -4479,12 +5789,12 @@ agreement</span></td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
-<td align="right">1352</td>
-<td align="right">1286</td>
-<td align="right">66</td>
-<td align="right">16</td>
-<td align="right">0.951</td>
-<td align="right">0.049</td>
+<td align="right">1289</td>
+<td align="right">1232</td>
+<td align="right">57</td>
+<td align="right">15</td>
+<td align="right">0.956</td>
+<td align="right">0.044</td>
 <td align="right">0.012</td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--agree">Strong
@@ -4495,13 +5805,13 @@ agreement</span></td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
-<td align="right">4149</td>
-<td align="right">3777</td>
-<td align="right">372</td>
-<td align="right">60</td>
-<td align="right">0.910</td>
-<td align="right">0.090</td>
-<td align="right">0.014</td>
+<td align="right">3727</td>
+<td align="right">3447</td>
+<td align="right">280</td>
+<td align="right">58</td>
+<td align="right">0.925</td>
+<td align="right">0.075</td>
+<td align="right">0.016</td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--agree">Strong
 agreement</span></td>
@@ -4511,13 +5821,13 @@ agreement</span></td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
-<td align="right">11380</td>
-<td align="right">10297</td>
-<td align="right">1083</td>
-<td align="right">140</td>
+<td align="right">10546</td>
+<td align="right">9549</td>
+<td align="right">997</td>
+<td align="right">136</td>
 <td align="right">0.905</td>
 <td align="right">0.095</td>
-<td align="right">0.012</td>
+<td align="right">0.013</td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--agree">Strong
 agreement</span></td>
@@ -4527,13 +5837,13 @@ agreement</span></td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
-<td align="right">138</td>
-<td align="right">120</td>
-<td align="right">18</td>
+<td align="right">131</td>
+<td align="right">116</td>
+<td align="right">15</td>
 <td align="right">4</td>
-<td align="right">0.870</td>
-<td align="right">0.130</td>
-<td align="right">0.029</td>
+<td align="right">0.885</td>
+<td align="right">0.115</td>
+<td align="right">0.031</td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--agree">Strong
 agreement</span></td>
@@ -4542,13 +5852,13 @@ agreement</span></td>
 <td align="left">Monocyte</td>
 <td align="left"><span
 class="xenium-qc-broad xenium-qc-broad--myeloid">Myeloid</span></td>
-<td align="right">8164</td>
-<td align="right">5982</td>
-<td align="right">2182</td>
-<td align="right">51</td>
-<td align="right">0.733</td>
-<td align="right">0.267</td>
-<td align="right">0.006</td>
+<td align="right">7346</td>
+<td align="right">5705</td>
+<td align="right">1641</td>
+<td align="right">50</td>
+<td align="right">0.777</td>
+<td align="right">0.223</td>
+<td align="right">0.007</td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--agree">Strong
 agreement</span></td>
@@ -4558,13 +5868,13 @@ agreement</span></td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
-<td align="right">79957</td>
-<td align="right">56229</td>
-<td align="right">23728</td>
-<td align="right">9735</td>
-<td align="right">0.703</td>
-<td align="right">0.297</td>
-<td align="right">0.122</td>
+<td align="right">72288</td>
+<td align="right">51367</td>
+<td align="right">20921</td>
+<td align="right">9501</td>
+<td align="right">0.711</td>
+<td align="right">0.289</td>
+<td align="right">0.131</td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--partial">Partial
 agreement</span></td>
@@ -4574,13 +5884,13 @@ agreement</span></td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
-<td align="right">690</td>
-<td align="right">482</td>
-<td align="right">208</td>
-<td align="right">37</td>
-<td align="right">0.699</td>
-<td align="right">0.301</td>
-<td align="right">0.054</td>
+<td align="right">656</td>
+<td align="right">458</td>
+<td align="right">198</td>
+<td align="right">35</td>
+<td align="right">0.698</td>
+<td align="right">0.302</td>
+<td align="right">0.053</td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--partial">Partial
 agreement</span></td>
@@ -4591,13 +5901,43 @@ agreement</span></td>
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--b">B
 memory</span> <span class="xenium-qc-broad xenium-qc-broad--b">Plasma
 cell</span></td>
-<td align="right">274950</td>
-<td align="right">182723</td>
-<td align="right">92227</td>
-<td align="right">15931</td>
-<td align="right">0.665</td>
-<td align="right">0.335</td>
-<td align="right">0.058</td>
+<td align="right">255478</td>
+<td align="right">176284</td>
+<td align="right">79194</td>
+<td align="right">15389</td>
+<td align="right">0.690</td>
+<td align="right">0.310</td>
+<td align="right">0.060</td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--partial">Partial
+agreement</span></td>
+</tr>
+<tr class="even">
+<td align="left">Endothelial cell</td>
+<td align="left"><span
+class="xenium-qc-broad xenium-qc-broad--stromal">Stromal/vascular</span></td>
+<td align="right">12920</td>
+<td align="right">8853</td>
+<td align="right">4067</td>
+<td align="right">171</td>
+<td align="right">0.685</td>
+<td align="right">0.315</td>
+<td align="right">0.013</td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--partial">Partial
+agreement</span></td>
+</tr>
+<tr class="odd">
+<td align="left">Fibroblast</td>
+<td align="left"><span
+class="xenium-qc-broad xenium-qc-broad--stromal">Stromal/vascular</span></td>
+<td align="right">34057</td>
+<td align="right">21776</td>
+<td align="right">12281</td>
+<td align="right">417</td>
+<td align="right">0.639</td>
+<td align="right">0.361</td>
+<td align="right">0.012</td>
 <td align="left"><span
 class="xenium-qc-badge xenium-qc-badge--partial">Partial
 agreement</span></td>
@@ -4606,43 +5946,16 @@ agreement</span></td>
 <td align="left">CD14 monocyte</td>
 <td align="left"><span
 class="xenium-qc-broad xenium-qc-broad--myeloid">Myeloid</span></td>
-<td align="right">56759</td>
-<td align="right">19956</td>
-<td align="right">36803</td>
-<td align="right">4242</td>
-<td align="right">0.352</td>
-<td align="right">0.648</td>
-<td align="right">0.075</td>
+<td align="right">36024</td>
+<td align="right">18740</td>
+<td align="right">17284</td>
+<td align="right">4000</td>
+<td align="right">0.520</td>
+<td align="right">0.480</td>
+<td align="right">0.111</td>
 <td align="left"><span
-class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
-</tr>
-<tr class="odd">
-<td align="left">NK cell</td>
-<td align="left"><span
-class="xenium-qc-broad xenium-qc-broad--t">NK</span></td>
-<td align="right">1218</td>
-<td align="right">0</td>
-<td align="right">1218</td>
-<td align="right">46</td>
-<td align="right">0.000</td>
-<td align="right">1.000</td>
-<td align="right">0.038</td>
-<td align="left"><span
-class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
-</tr>
-<tr class="even">
-<td align="left">ILC</td>
-<td align="left"><span
-class="xenium-qc-broad xenium-qc-broad--t">NK</span></td>
-<td align="right">33</td>
-<td align="right">0</td>
-<td align="right">33</td>
-<td align="right">12</td>
-<td align="right">0.000</td>
-<td align="right">1.000</td>
-<td align="right">0.364</td>
-<td align="left"><span
-class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
+class="xenium-qc-badge xenium-qc-badge--partial">Partial
+agreement</span></td>
 </tr>
 </tbody>
 </table>
@@ -4650,21 +5963,79 @@ class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
 <caption>B-lineage secondary state sanity check summarized by focused
 Enrichr fine class</caption>
 <colgroup>
-<col width="100%" />
+<col width="47%" />
+<col width="4%" />
+<col width="5%" />
+<col width="42%" />
 </colgroup>
 <thead>
 <tr class="header">
-<th align="left">status</th>
+<th align="left">enrichr_fine</th>
+<th align="right">n_cells</th>
+<th align="right">fraction</th>
+<th align="left">agreement_status</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">No B-lineage secondary state rows were available for
-this sanity check.</td>
+<td align="left"><span class="xenium-qc-broad xenium-qc-broad--b">B
+cell</span></td>
+<td align="right">73112</td>
+<td align="right">0.286</td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--agree">Agreement</span></td>
+</tr>
+<tr class="even">
+<td align="left"><span class="xenium-qc-broad xenium-qc-broad--b">B
+memory</span></td>
+<td align="right">46601</td>
+<td align="right">0.182</td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--agree">Agreement</span></td>
+</tr>
+<tr class="odd">
+<td align="left"><span class="xenium-qc-broad xenium-qc-broad--b">Plasma
+cell</span></td>
+<td align="right">56571</td>
+<td align="right">0.221</td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--agree">Agreement</span></td>
+</tr>
+<tr class="even">
+<td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
+cell</span></td>
+<td align="right">48966</td>
+<td align="right">0.192</td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
+</tr>
+<tr class="odd">
+<td align="left"><span
+class="xenium-qc-broad xenium-qc-broad--myeloid">Myeloid</span></td>
+<td align="right">12411</td>
+<td align="right">0.049</td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
+</tr>
+<tr class="even">
+<td align="left"><span
+class="xenium-qc-broad xenium-qc-broad--stromal">Stromal/vascular</span></td>
+<td align="right">2428</td>
+<td align="right">0.010</td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
+</tr>
+<tr class="odd">
+<td align="left"><span
+class="xenium-qc-broad xenium-qc-broad--other">Other/off-context</span></td>
+<td align="right">15389</td>
+<td align="right">0.060</td>
+<td align="left"><span
+class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
 </tr>
 </tbody>
 </table>
-<table style="width:100%;">
+<table>
 <caption>Harmony clusters where CellTypist-majority class and focused
 Enrichr fine class should be reviewed</caption>
 <colgroup>
@@ -4702,7 +6073,7 @@ Enrichr fine class should be reviewed</caption>
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--b">B
 memory</span> <span class="xenium-qc-broad xenium-qc-broad--b">Plasma
 cell</span></td>
-<td align="right">0.996</td>
+<td align="right">0.972</td>
 <td align="left">Liver-L2-Proliferating T/NK</td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span></td>
@@ -4719,7 +6090,7 @@ class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--b">B
 memory</span> <span class="xenium-qc-broad xenium-qc-broad--b">Plasma
 cell</span></td>
-<td align="right">0.928</td>
+<td align="right">0.903</td>
 <td align="left">Antigen presenting cells in Thymus</td>
 <td align="left"><span
 class="xenium-qc-broad xenium-qc-broad--other">Other/off-context</span></td>
@@ -4735,7 +6106,7 @@ class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
-<td align="right">0.580</td>
+<td align="right">0.566</td>
 <td align="left">Goblet Cells</td>
 <td align="left"><span
 class="xenium-qc-broad xenium-qc-broad--other">Other/off-context</span></td>
@@ -4745,43 +6116,13 @@ class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
 <td align="left">Off-context or missing Enrichr label</td>
 </tr>
 <tr class="even">
-<td align="left">9</td>
-<td align="right">19502</td>
-<td align="left">CD14 monocyte</td>
-<td align="left"><span
-class="xenium-qc-broad xenium-qc-broad--myeloid">Myeloid</span></td>
-<td align="right">0.574</td>
-<td align="left">Endothelial Cells</td>
-<td align="left"><span
-class="xenium-qc-broad xenium-qc-broad--stromal">Stromal/vascular</span></td>
-<td align="left">High</td>
-<td align="left"><span
-class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
-<td align="left">CellTypist-Enrichr fine-class mismatch</td>
-</tr>
-<tr class="odd">
-<td align="left">7</td>
-<td align="right">24470</td>
-<td align="left">CD14 monocyte</td>
-<td align="left"><span
-class="xenium-qc-broad xenium-qc-broad--myeloid">Myeloid</span></td>
-<td align="right">0.451</td>
-<td align="left">Fibroblasts</td>
-<td align="left"><span
-class="xenium-qc-broad xenium-qc-broad--stromal">Stromal/vascular</span></td>
-<td align="left">High</td>
-<td align="left"><span
-class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
-<td align="left">CellTypist-Enrichr fine-class mismatch</td>
-</tr>
-<tr class="even">
 <td align="left">12</td>
 <td align="right">3782</td>
 <td align="left">T cell</td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--t">T
 memory</span></td>
-<td align="right">0.443</td>
+<td align="right">0.436</td>
 <td align="left">Corneal and conjunctival epithelial cells in Eye</td>
 <td align="left"><span
 class="xenium-qc-broad xenium-qc-broad--other">Other/off-context</span></td>
@@ -4798,7 +6139,7 @@ class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--b">B
 memory</span> <span class="xenium-qc-broad xenium-qc-broad--b">Plasma
 cell</span></td>
-<td align="right">0.416</td>
+<td align="right">0.384</td>
 <td align="left">Mast Cell Stomach Human</td>
 <td align="left"><span
 class="xenium-qc-broad xenium-qc-broad--other">Other/off-context</span></td>
@@ -4815,7 +6156,7 @@ class="xenium-qc-badge xenium-qc-badge--review">Review</span></td>
 cell</span> <span class="xenium-qc-broad xenium-qc-broad--b">B
 memory</span> <span class="xenium-qc-broad xenium-qc-broad--b">Plasma
 cell</span></td>
-<td align="right">0.392</td>
+<td align="right">0.380</td>
 <td align="left">Exhausted CD8+ T Cell Breast Human</td>
 <td align="left"><span class="xenium-qc-broad xenium-qc-broad--t">T
 cell</span></td>

@@ -11,7 +11,7 @@
 
 <meta name="author" content="Andrew Portuguese" />
 
-<meta name="date" content="2026-06-02" />
+<meta name="date" content="2026-06-05" />
 
 <title>05. Xenium Spatial Neighborhoods and Interfaces</title>
 
@@ -253,7 +253,7 @@ div.tocify {
 <h1 class="title toc-ignore">05. Xenium Spatial Neighborhoods and
 Interfaces</h1>
 <h4 class="author">Andrew Portuguese</h4>
-<h4 class="date">June 02, 2026</h4>
+<h4 class="date">June 05, 2026</h4>
 
 </div>
 
@@ -420,7 +420,8 @@ Spatial/Interfaces</a><a class="xenium-navbar__link" href="06_differential_expre
 DE</a><a class="xenium-navbar__link" href="07_patient_characteristics.html">07
 Patient
 Characteristics</a><a class="xenium-navbar__link" href="08_spatialscore.html">08
-SpatialScore</a>
+SpatialScore</a><a class="xenium-navbar__link" href="09_malignant_b_morphology_review.html">09
+Morphology Review</a>
 </div>
 </div>
 </div>
@@ -440,7 +441,7 @@ repeated cores to patient-level niche abundances before testing.</p>
   dir.create(neighborhood_out_dir, showWarnings = FALSE, recursive = TRUE)
 
   spatial_k &lt;- 10
-  niche_cache &lt;- make_cache_file(&quot;xenium_with_niches&quot;, family = &quot;spatial&quot;, segmentation_cache_tag, paste0(&quot;k&quot;, spatial_k), &quot;candidate_malignant_b_v2&quot;)
+  niche_cache &lt;- make_cache_file(&quot;xenium_with_niches&quot;, family = &quot;spatial&quot;, segmentation_cache_tag, paste0(&quot;k&quot;, spatial_k), &quot;candidate_malignant_b_v4_canonical_marker_override_v2_no_epithelial&quot;)
   spatial_res &lt;- get_cached_rds(
     niche_cache,
     function() benchmark_stage(&quot;spatial_neighborhoods&quot;, {
@@ -448,10 +449,10 @@ repeated cores to patient-level niche abundances before testing.</p>
       ptld_analysis_cells_local &lt;- ptld_analysis_cells_local[!is.na(ptld_analysis_cells_local$x) &amp; !is.na(ptld_analysis_cells_local$y), , drop = FALSE]
 
       neighborhood_res_local &lt;- get_cached_rds(
-        file.path(cache_root, &quot;ptld_neighborhood_profiles_k10.rds&quot;),
+        file.path(cache_root, &quot;ptld_neighborhood_profiles_k10_canonical_marker_override_v2_no_epithelial.rds&quot;),
         function() build_neighborhood_profiles(ptld_analysis_cells_local, label_col = &quot;cell_type_refined&quot;, k = spatial_k),
         refresh = refresh_spatial,
-        expected_version = make_cache_tag(segmentation_cache_tag, &quot;neighborhood_profiles&quot;, paste0(&quot;k&quot;, spatial_k)),
+        expected_version = make_cache_tag(segmentation_cache_tag, &quot;neighborhood_profiles&quot;, paste0(&quot;k&quot;, spatial_k), &quot;canonical_marker_override_v2_no_epithelial&quot;),
         allow_legacy = FALSE
       )
 
@@ -459,19 +460,19 @@ repeated cores to patient-level niche abundances before testing.</p>
         message(&quot;Rebuilding neighborhood-profile cache because stored profile columns do not match the expected cell-type labels.&quot;)
         neighborhood_res_local &lt;- build_neighborhood_profiles(ptld_analysis_cells_local, label_col = &quot;cell_type_refined&quot;, k = spatial_k)
         write_cache_bundle(
-          file.path(cache_root, &quot;ptld_neighborhood_profiles_k10.rds&quot;),
+          file.path(cache_root, &quot;ptld_neighborhood_profiles_k10_canonical_marker_override_v2_no_epithelial.rds&quot;),
           neighborhood_res_local,
-          expected_version = make_cache_tag(segmentation_cache_tag, &quot;neighborhood_profiles&quot;, paste0(&quot;k&quot;, spatial_k))
+          expected_version = make_cache_tag(segmentation_cache_tag, &quot;neighborhood_profiles&quot;, paste0(&quot;k&quot;, spatial_k), &quot;canonical_marker_override_v2_no_epithelial&quot;)
         )
       }
 
       profile_df_local &lt;- neighborhood_res_local$profiles
       profile_cols &lt;- neighborhood_res_local$levels
       niche_fit_local &lt;- get_cached_rds(
-        file.path(cache_root, &quot;ptld_niche_assignment_k10.rds&quot;),
+        file.path(cache_root, &quot;ptld_niche_assignment_k10_canonical_marker_override_v2_no_epithelial.rds&quot;),
         function() assign_niche_labels(profile_df_local, profile_cols = profile_cols, k_grid = 4:12, seed = 1),
         refresh = refresh_spatial,
-        expected_version = make_cache_tag(segmentation_cache_tag, &quot;niche_assignment&quot;, paste0(&quot;k&quot;, spatial_k), &quot;grid4_12&quot;),
+        expected_version = make_cache_tag(segmentation_cache_tag, &quot;niche_assignment&quot;, paste0(&quot;k&quot;, spatial_k), &quot;grid4_12&quot;, &quot;canonical_marker_override_v2_no_epithelial&quot;),
         allow_legacy = FALSE
       )
 
@@ -524,7 +525,7 @@ repeated cores to patient-level niche abundances before testing.</p>
     refresh = refresh_spatial,
     metadata = list(stage = &quot;xenium_with_niches&quot;, k = spatial_k)
   )</code></pre>
-<pre><code>## Using cache: xenium_with_niches_spatial_20260328_layered_cache_v1_k10_candidate_malignant_b_v2proseg_primary_v1</code></pre>
+<pre><code>## Using cache: xenium_with_niches_spatial_20260328_layered_cache_v1_k10_candidate_malignant_b_v4_canonical_marker_override_v2_no_epithelialproseg_primary_v1</code></pre>
 <pre class="r"><code>  ptld_analysis_cells &lt;- spatial_res$ptld_analysis_cells
   neighborhood_res &lt;- spatial_res$neighborhood_res
   niche_fit &lt;- spatial_res$niche_fit
@@ -625,16 +626,11 @@ repeated cores to patient-level niche abundances before testing.</p>
 <pre><code>## Using existing niche map image: Analysis/Xenium_analysis/EBV_neighborhoods/EBV_POS_R1_C2_niche_map.jpg</code></pre>
 <pre><code>## Using existing niche map image: Analysis/Xenium_analysis/EBV_neighborhoods/EBV_NEG_R1_C2_niche_map.jpg</code></pre>
 <pre class="r"><code>  utils::head(niche_limma)</code></pre>
-<pre><code>##                logFC    AveExpr            t   P.Value adj.P.Val         B
-## Niche_1 -0.027692183 -0.4651107 -0.110065825 0.9129430 0.9938659 -4.626971
-## Niche_2  0.420625388 -1.2494937  0.688613568 0.4952966 0.9905932 -4.612343
-## Niche_3 -0.003578329 -1.1455247 -0.007739323 0.9938659 0.9938659 -4.627357
-## Niche_4 -0.639742210 -0.5539466 -1.155469748 0.2551931 0.9905932 -4.585989
-##         feature
-## Niche_1 Niche_1
-## Niche_2 Niche_2
-## Niche_3 Niche_3
-## Niche_4 Niche_4</code></pre>
+<pre><code>##              logFC    AveExpr          t   P.Value adj.P.Val         B feature
+## Niche_1 -0.1298558 -0.8557894 -0.3473296 0.7301849  0.841312 -4.627758 Niche_1
+## Niche_2 -0.1318200 -0.3839836 -0.5410674 0.5914951  0.841312 -4.621521 Niche_2
+## Niche_3 -0.5543484 -0.7882193 -0.9805633 0.3327672  0.841312 -4.597771 Niche_3
+## Niche_4  0.1157131 -1.2710004  0.2015363 0.8413120  0.841312 -4.630676 Niche_4</code></pre>
 <p><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_spatial_neighborhoods-1.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_spatial_neighborhoods-2.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_spatial_neighborhoods-3.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="cell-cell-interfaces-across-ptld-cores" class="section level2"
@@ -795,12 +791,12 @@ replicate cores from the same patient before limma testing.</p>
     )
   }
 
-  interface_cache &lt;- make_cache_file(&quot;interface_patient_results&quot;, family = &quot;spatial&quot;, segmentation_cache_tag, &quot;k10&quot;, &quot;perm100&quot;, &quot;candidate_malignant_b_v2&quot;)
+  interface_cache &lt;- make_cache_file(&quot;interface_patient_results&quot;, family = &quot;spatial&quot;, segmentation_cache_tag, &quot;k10&quot;, &quot;perm100&quot;, &quot;candidate_malignant_b_v4_canonical_marker_override_v2_no_epithelial&quot;)
   interface_bundle &lt;- get_cached_rds(
     interface_cache,
     function() benchmark_stage(&quot;interface_enrichment&quot;, {
       interface_results_local &lt;- get_cached_rds(
-        file.path(cache_root, &quot;ptld_interface_enrichment_k10_perm100_candidate_malignant_b_v2.rds&quot;),
+        file.path(cache_root, &quot;ptld_interface_enrichment_k10_perm100_candidate_malignant_b_v4_canonical_marker_override_v2_no_epithelial.rds&quot;),
         function() {
           core_split &lt;- split(ptld_analysis_cells, interaction(ptld_analysis_cells$sample_key, ptld_analysis_cells$core_id, drop = TRUE))
           edge_split &lt;- split(neighborhood_res$edges, interaction(neighborhood_res$edges$sample_key, neighborhood_res$edges$core_id, drop = TRUE))
@@ -845,7 +841,7 @@ replicate cores from the same patient before limma testing.</p>
           )
         },
         refresh = refresh_spatial,
-        expected_version = make_cache_tag(segmentation_cache_tag, &quot;interface_enrichment&quot;, &quot;k10&quot;, &quot;perm100&quot;, &quot;candidate_malignant_b_v2&quot;),
+        expected_version = make_cache_tag(segmentation_cache_tag, &quot;interface_enrichment&quot;, &quot;k10&quot;, &quot;perm100&quot;, &quot;candidate_malignant_b_v4_canonical_marker_override_v2_no_epithelial&quot;),
         allow_legacy = FALSE
       )
 
@@ -902,9 +898,9 @@ replicate cores from the same patient before limma testing.</p>
           tcell_candidate_malignant_b_program = if (length(candidate_program_list) &gt; 0) do.call(rbind, candidate_program_list) else empty_interface_metric_df()
         )
         write_cache_bundle(
-          file.path(cache_root, &quot;ptld_interface_enrichment_k10_perm100_candidate_malignant_b_v2.rds&quot;),
+          file.path(cache_root, &quot;ptld_interface_enrichment_k10_perm100_candidate_malignant_b_v4_canonical_marker_override_v2_no_epithelial.rds&quot;),
           interface_results_local,
-          expected_version = make_cache_tag(segmentation_cache_tag, &quot;interface_enrichment&quot;, &quot;k10&quot;, &quot;perm100&quot;, &quot;candidate_malignant_b_v2&quot;)
+          expected_version = make_cache_tag(segmentation_cache_tag, &quot;interface_enrichment&quot;, &quot;k10&quot;, &quot;perm100&quot;, &quot;candidate_malignant_b_v4_canonical_marker_override_v2_no_epithelial&quot;)
         )
       }
 
@@ -994,7 +990,7 @@ replicate cores from the same patient before limma testing.</p>
     refresh = refresh_spatial,
     metadata = list(stage = &quot;interface_patient_results&quot;, k = 10, permutations = 100)
   )</code></pre>
-<pre><code>## Using cache: interface_patient_results_spatial_20260328_layered_cache_v1_k10_perm100_candidate_malignant_b_v2proseg_primary_v1</code></pre>
+<pre><code>## Using cache: interface_patient_results_spatial_20260328_layered_cache_v1_k10_perm100_candidate_malignant_b_v4_canonical_marker_override_v2_no_epithelialproseg_primary_v1</code></pre>
 <pre class="r"><code>  interface_results &lt;- interface_bundle$interface_results
   celltype_patient_metrics &lt;- interface_bundle$celltype_patient_metrics
   cross_patient_metrics &lt;- interface_bundle$cross_patient_metrics
@@ -1265,21 +1261,42 @@ replicate cores from the same patient before limma testing.</p>
   }
 
   utils::head(cross_interface_limma)</code></pre>
-<pre><code>##                logFC    AveExpr          t    P.Value adj.P.Val         B
-## 1 &lt;-&gt; 1  0.079654548 0.08291548  1.7151387 0.09957603 0.5227741 -4.922008
-## 1 &lt;-&gt; 2  0.147576855 0.08648136  2.0471545 0.05206798 0.3585071 -4.377608
-## 1 &lt;-&gt; 3  0.021518692 0.07116833  0.3456977 0.73266821 0.8983883 -6.257634
-## 1 &lt;-&gt; 4 -0.008819668 0.05568841 -0.1776394 0.86053973 0.9267351 -6.301884
-## 1 &lt;-&gt; 5  0.098383446 0.02303526  1.6172112 0.11927720 0.5566269 -5.068651
-## 1 &lt;-&gt; 6  0.019532059 0.06667512  0.4393320 0.66446397 0.8967788 -6.220783
-##         feature                                      feature_display
-## 1 &lt;-&gt; 1 1 &lt;-&gt; 1                      CD8 cytotoxic &lt;-&gt; Proliferative
-## 1 &lt;-&gt; 2 1 &lt;-&gt; 2                CD8 cytotoxic &lt;-&gt; GC-like / BCL6-high
-## 1 &lt;-&gt; 3 1 &lt;-&gt; 3                 CD8 cytotoxic &lt;-&gt; BCL2-high survival
-## 1 &lt;-&gt; 4 1 &lt;-&gt; 4      CD8 cytotoxic &lt;-&gt; Plasma-like / PRDM1-XBP1-MZB1
-## 1 &lt;-&gt; 5 1 &lt;-&gt; 5 CD8 cytotoxic &lt;-&gt; Antigen-presentation / HLA-II-high
-## 1 &lt;-&gt; 6 1 &lt;-&gt; 6                  CD8 cytotoxic &lt;-&gt; Other malignant B</code></pre>
-<p><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-1.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-2.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-3.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-4.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-5.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-6.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
+<pre><code>##                                                         logFC    AveExpr
+## CD4 helper &lt;-&gt; Antigen-presentation / HLA-II-high  0.17386835 0.03386022
+## CD4 helper &lt;-&gt; BCL2-high survival                  0.03734242 0.04224120
+## CD4 helper &lt;-&gt; GC-like / BCL6-high                 0.10571542 0.03751935
+## CD4 helper &lt;-&gt; Other malignant B                   0.09883307 0.10241500
+## CD4 helper &lt;-&gt; Plasma-like / PRDM1-XBP1-MZB1       0.00848634 0.04613325
+## CD4 helper &lt;-&gt; Proliferative                      -0.05759456 0.08184971
+##                                                            t    P.Value
+## CD4 helper &lt;-&gt; Antigen-presentation / HLA-II-high  2.4096768 0.02337741
+## CD4 helper &lt;-&gt; BCL2-high survival                  0.6801967 0.50241911
+## CD4 helper &lt;-&gt; GC-like / BCL6-high                 0.9806957 0.33582113
+## CD4 helper &lt;-&gt; Other malignant B                   1.6918785 0.10267572
+## CD4 helper &lt;-&gt; Plasma-like / PRDM1-XBP1-MZB1       0.1416844 0.88842633
+## CD4 helper &lt;-&gt; Proliferative                      -1.2254522 0.23143920
+##                                                   adj.P.Val         B
+## CD4 helper &lt;-&gt; Antigen-presentation / HLA-II-high 0.1963703 -3.266538
+## CD4 helper &lt;-&gt; BCL2-high survival                 0.8937343 -5.329761
+## CD4 helper &lt;-&gt; GC-like / BCL6-high                0.7423414 -5.117214
+## CD4 helper &lt;-&gt; Other malignant B                  0.4513295 -4.347855
+## CD4 helper &lt;-&gt; Plasma-like / PRDM1-XBP1-MZB1      0.9391775 -5.522177
+## CD4 helper &lt;-&gt; Proliferative                      0.6075279 -4.892358
+##                                                                                             feature
+## CD4 helper &lt;-&gt; Antigen-presentation / HLA-II-high CD4 helper &lt;-&gt; Antigen-presentation / HLA-II-high
+## CD4 helper &lt;-&gt; BCL2-high survival                                 CD4 helper &lt;-&gt; BCL2-high survival
+## CD4 helper &lt;-&gt; GC-like / BCL6-high                               CD4 helper &lt;-&gt; GC-like / BCL6-high
+## CD4 helper &lt;-&gt; Other malignant B                                   CD4 helper &lt;-&gt; Other malignant B
+## CD4 helper &lt;-&gt; Plasma-like / PRDM1-XBP1-MZB1           CD4 helper &lt;-&gt; Plasma-like / PRDM1-XBP1-MZB1
+## CD4 helper &lt;-&gt; Proliferative                                           CD4 helper &lt;-&gt; Proliferative
+##                                                                                     feature_display
+## CD4 helper &lt;-&gt; Antigen-presentation / HLA-II-high CD4 helper &lt;-&gt; Antigen-presentation / HLA-II-high
+## CD4 helper &lt;-&gt; BCL2-high survival                                 CD4 helper &lt;-&gt; BCL2-high survival
+## CD4 helper &lt;-&gt; GC-like / BCL6-high                               CD4 helper &lt;-&gt; GC-like / BCL6-high
+## CD4 helper &lt;-&gt; Other malignant B                                   CD4 helper &lt;-&gt; Other malignant B
+## CD4 helper &lt;-&gt; Plasma-like / PRDM1-XBP1-MZB1           CD4 helper &lt;-&gt; Plasma-like / PRDM1-XBP1-MZB1
+## CD4 helper &lt;-&gt; Proliferative                                           CD4 helper &lt;-&gt; Proliferative</code></pre>
+<p><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-1.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-2.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-3.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-4.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-5.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-6.png" alt="" width="100%" style="display: block; margin: auto;" /><img src="05_spatial_neighborhoods_and_interfaces_files/figure-html/compare_ptld_cellcell_interfaces-7.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="pd1-pd-l1-axis-across-ptld-cores" class="section level2"
 number="3">
@@ -1294,7 +1311,7 @@ limma testing.</p>
 <pre class="r"><code>  pd_axis_out_dir &lt;- file.path(output_root, &quot;EBV_PD1_PDL1_axis&quot;)
   dir.create(pd_axis_out_dir, showWarnings = FALSE, recursive = TRUE)
   pd_axis_bundle &lt;- get_cached_rds(
-    make_cache_file(&quot;pd_axis_patient_results&quot;, family = &quot;reports&quot;, segmentation_cache_tag, &quot;candidate_malignant_b_v2&quot;),
+    make_cache_file(&quot;pd_axis_patient_results&quot;, family = &quot;reports&quot;, segmentation_cache_tag, &quot;candidate_malignant_b_v4_canonical_marker_override_v2_no_epithelial&quot;),
     function() benchmark_stage(&quot;pd_axis_metrics&quot;, {
       pd_axis_genes &lt;- c(&quot;PDCD1&quot;, &quot;CD274&quot;, &quot;PDCD1LG2&quot;)
       pd_axis_expr &lt;- do.call(
@@ -1458,7 +1475,7 @@ limma testing.</p>
     refresh = refresh_reports,
     metadata = list(stage = &quot;pd_axis_patient_results&quot;)
   )</code></pre>
-<pre><code>## Using cache: pd_axis_patient_results_reports_20260328_layered_cache_v1_candidate_malignant_b_v2proseg_primary_v1</code></pre>
+<pre><code>## Using cache: pd_axis_patient_results_reports_20260328_layered_cache_v1_candidate_malignant_b_v4_canonical_marker_override_v2_no_epithelialproseg_primary_v1</code></pre>
 <pre class="r"><code>  ptld_analysis_cells &lt;- pd_axis_bundle$ptld_analysis_cells
   threshold_table &lt;- pd_axis_bundle$threshold_table
   pd_axis_metrics &lt;- pd_axis_bundle$pd_axis_metrics
@@ -1527,27 +1544,27 @@ limma testing.</p>
   )
 
   utils::head(pd_axis_limma)</code></pre>
-<pre><code>##                                                             logFC    AveExpr
-## frac_CD274_high_candidate_malignant_B                6.276620e-16  6.9067548
-## frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B -4.522289e-01  5.7694303
-## frac_pd1_high_t_adj_pdl1_high_myeloid                6.278868e-01 -6.5432414
-## frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B  9.885691e-01  0.1160487
-## frac_pd1_high_t_adj_pdl2_high_myeloid                6.278868e-01 -6.5432414
-## frac_PD1_high_t_lineage                              6.276620e-16  6.9067548
+<pre><code>##                                                             logFC     AveExpr
+## frac_CD274_high_candidate_malignant_B                6.998857e-01 -2.66828431
+## frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B  9.467970e-01 -0.31367839
+## frac_pd1_high_t_adj_pdl1_high_myeloid               -4.263403e-16 -6.90675478
+## frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B  1.017432e+00 -0.07766097
+## frac_pd1_high_t_adj_pdl2_high_myeloid               -4.263403e-16 -6.90675478
+## frac_PD1_high_t_lineage                              6.276620e-16  6.90675478
 ##                                                                 t    P.Value
-## frac_CD274_high_candidate_malignant_B                7.319529e-13 1.00000000
-## frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B -4.896959e-01 0.63048163
-## frac_pd1_high_t_adj_pdl1_high_myeloid                8.548191e-01 0.40429806
-## frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B  2.210169e+00 0.04079531
-## frac_pd1_high_t_adj_pdl2_high_myeloid                8.548191e-01 0.40429806
-## frac_PD1_high_t_lineage                              7.319529e-13 1.00000000
-##                                                     adj.P.Val         B
-## frac_CD274_high_candidate_malignant_B               1.0000000 -7.410382
-## frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B 0.7881020 -7.284895
-## frac_pd1_high_t_adj_pdl1_high_myeloid               0.5775687 -7.033271
-## frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B 0.1248089 -5.143581
-## frac_pd1_high_t_adj_pdl2_high_myeloid               0.5775687 -7.033271
-## frac_PD1_high_t_lineage                             1.0000000 -7.410382
+## frac_CD274_high_candidate_malignant_B                2.610614e+00 0.01811368
+## frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B  1.850156e+00 0.08147975
+## frac_pd1_high_t_adj_pdl1_high_myeloid               -5.979124e-12 1.00000000
+## frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B  2.141829e+00 0.04674686
+## frac_pd1_high_t_adj_pdl2_high_myeloid               -5.979124e-12 1.00000000
+## frac_PD1_high_t_lineage                              8.802519e-12 1.00000000
+##                                                      adj.P.Val         B
+## frac_CD274_high_candidate_malignant_B               0.06037893 -6.718144
+## frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B 0.13579958 -8.104762
+## frac_pd1_high_t_adj_pdl1_high_myeloid               1.00000000 -9.756560
+## frac_pd1_high_t_adj_pdl2_high_candidate_malignant_B 0.09504429 -7.604727
+## frac_pd1_high_t_adj_pdl2_high_myeloid               1.00000000 -9.756560
+## frac_PD1_high_t_lineage                             1.00000000 -9.756560
 ##                                                                                                 feature
 ## frac_CD274_high_candidate_malignant_B                             frac_CD274_high_candidate_malignant_B
 ## frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B frac_pd1_high_t_adj_pdl1_high_candidate_malignant_B
